@@ -1,5 +1,3 @@
-import { PrismaClient } from '@prisma/client';
-
-export const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL, // runtime URL here in 5.20+
-});
+import { PrismaClient } from "@prisma/client";
+export const prisma = globalThis.prisma || new PrismaClient();
+if (process.env.NODE_ENV !== "production") globalThis.prisma = prisma;

@@ -1,9 +1,19 @@
+// server/src/routes/public.routes.js
 import { Router } from "express";
-import { createSession, success } from "../controllers/checkout.controller.js";
-import { getSummary } from "../controllers/admin.controller.js";
+import { createSession, summary } from "../controllers/checkout.controller.js";
 
-const r = Router();
-r.post("/checkout/session", createSession);
-r.get("/checkout/success", success);
-r.get("/summary", getSummary);
-export default r;
+const router = Router();
+
+/**
+ * POST /api/checkout/session
+ * Body: { name, email, phone?, quantity }
+ */
+router.post("/checkout/session", createSession);
+
+/**
+ * GET /api/summary
+ * Returns { paid, pending }
+ */
+router.get("/summary", summary);
+
+export default router;

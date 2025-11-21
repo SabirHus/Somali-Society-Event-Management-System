@@ -1,32 +1,27 @@
 # node
 node_modules/
-**/node_modules/
+dist/
+build/
+.tmp/
+.temp/
 
-# env / secrets
+# env & secrets (NEVER commit real env files)
 .env
-**/.env
-.env.local
-**/.env.local
+*.env
+server/.env
+web/.env
+
+# Database (local dev)
+server/prisma/dev.db
+server/prisma/dev.db-journal
 
 # logs
+*.log
 npm-debug.log*
+pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 
-# editor
+# OS/editor noise
 .DS_Store
 Thumbs.db
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/launch.json
-
-# prisma / sqlite
-server/prisma/dev.db
-*.sqlite
-*.sqlite-journal
-
-# vite/coverage/dist
-dist/
-coverage/

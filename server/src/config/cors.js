@@ -1,7 +1,11 @@
-export const corsOptions = {
-    origin: (origin, cb) => {
-        const allow = [process.env.WEB_ORIGIN, undefined]; // allow your web and tools
-        cb(null, allow.includes(origin));
-    },
-    credentials: true
-};
+import 'dotenv/config';
+import cors from 'cors';
+
+const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5173';
+
+export function corsMiddleware() {
+  return cors({
+    origin: WEB_ORIGIN,
+    credentials: false,
+  });
+}

@@ -1,47 +1,46 @@
+// server/src/services/attendee.service.js
 import { prisma } from "../models/prisma.js";
 
-export async function createAttendee({ name, email, phone, quantity, code }) {
-  return prisma.attendee.create({ data: { name, email, phone, quantity, code, status: "pending" } });
+/**
+ * Idempotently upsert attendee when session completes.
+ */
+export async function upsertAttendeeFromSession(session) {
+  const q = Number(session?.amount_total ? 1 : session?.metadata?.quantity || 1); // quantity on line_items, fallback 1
+  const email = session?.customer_details?.email || session?.customer_email || session?.metadata?.email || "";
+  const name = session?.metadata?.name || session?.customer_details?.name || "";
+  const phone = session?.metadata?.phone || "";
+
+  return prisma.attendee.upsert({
+    where: { stripeSessionId: session.id },
+    update: {
+      status: "paid",
+      name,
+      email,
+      phone,
+      quantity: q,
+    },
+    create: {
+      name,
+      email,
+      phone,
+      quantity: q,
+      status: "paid",
+      code: makeCode(),
+      stripeSessionId: session.id,
+    },
+  });
 }
 
-export async function linkSession(attendeeId, sessionId) {
-  return prisma.attendee.update({ where: { id: attendeeId }, data: { stripeSessionId: sessionId } });
-}
-
-export async function markPaidBySession(sessionId) {
-  return prisma.attendee.update({ where: { stripeSessionId: sessionId }, data: { status: "paid" } });
-}
-
-export async function findByCode(code) {
-  return prisma.attendee.findFirst({ where: { code } });
-}
-
-export async function toggleCheckinByCode(code) {
-  const a = await findByCode(code);
-  if (!a) return { status: "err", msg: "Invalid QR" };
-  if (a.status === "pending") return { status: "err", msg: "Payment pending" };
-  if (a.status === "checked_in") {
-    await prisma.attendee.update({ where: { id: a.id }, data: { status: "paid" } });
-    return { status: "warn", msg: "Unchecked (back to Paid)" };
-  }
-  await prisma.attendee.update({ where: { id: a.id }, data: { status: "checked_in" } });
-  return { status: "ok", msg: "Checked in — welcome!" };
-}
-
-export async function listAttendees({ q, status }) {
-  const where = {};
-  if (q) where.OR = [
-    { name: { contains: q, mode: "insensitive" } },
-    { email: { contains: q, mode: "insensitive" } },
-    { code: { contains: q, mode: "insensitive" } }
-  ];
-  if (status) where.status = status;
-  return prisma.attendee.findMany({ where, orderBy: { createdAt: "desc" } });
-}
-
-export async function summary() {
-  const g = await prisma.attendee.groupBy({ by: ["status"], _sum: { quantity: true } });
-  const paid = g.find(x => x.status === "paid")?._sum.quantity ?? 0;
-  const pending = g.find(x => x.status === "pending")?._sum.quantity ?? 0;
+/**
+ * For the public summary widget.
+ */
+export async function getCounts() {
+  const paid = await prisma.attendee.count({ where: { status: "paid" } });
+  const pending = await prisma.attendee.count({ where: { status: "pending" } });
   return { paid, pending };
+}
+
+function makeCode() {
+  // brief, human-friendly code
+  return "SS-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 }

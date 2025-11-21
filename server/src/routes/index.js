@@ -1,13 +1,15 @@
-import { Router } from "express";
-import { envCheck } from "../controllers/env.controller.js";
-// ... existing imports
+// server/src/routes/index.js
+import { Router, json } from "express";
+import publicRoutes from "./public.routes.js";
+import webhookRoutes from "./webhook.routes.js";
 
 const router = Router();
 
-// existing routes...
-router.get("/health", (req, res) => res.json({ ok: true }));
+// normal JSON for app APIs
+router.use(json());
+router.use("/", publicRoutes);
 
-// NEW
-router.get("/env-check", envCheck);
+// mount webhook under /webhooks (raw body handled inside webhook.routes.js)
+router.use("/webhooks", webhookRoutes);
 
 export default router;

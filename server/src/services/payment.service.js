@@ -1,18 +1,54 @@
+// server/src/services/payment.service.js
 import Stripe from "stripe";
-export function stripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" });
-}
-export async function createCheckoutSession({ quantity, email, attendeeId, code }) {
-  const s = stripe();
-  return s.checkout.sessions.create({
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+/**
+ * Creates a Stripe Checkout Session.
+ * Returns { url } for client redirect.
+ */
+export async function createCheckoutSession({ name, email, phone, quantity }) {
+  if (!process.env.STRIPE_PRICE_ID) {
+    throw new Error("Missing STRIPE_PRICE_ID");
+  }
+  const successUrl = `${process.env.APP_URL || process.env.WEB_ORIGIN}/success?session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = `${process.env.APP_URL || process.env.WEB_ORIGIN}/register?cancelled=1`;
+
+  const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    success_url: `${process.env.APP_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.APP_URL}/`,
-    line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity }],
-    metadata: { attendeeId, code },
-    customer_email: email
+    payment_method_types: ["card"],
+    customer_email: email,
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+    line_items: [
+      {
+        price: process.env.STRIPE_PRICE_ID,
+        quantity: Number(quantity || 1),
+      },
+    ],
+    metadata: {
+      name: String(name || ""),
+      email: String(email || ""),
+      phone: String(phone || ""),
+    },
   });
+
+  return { url: session.url, id: session.id };
 }
-export async function retrieveSession(sessionId) {
-  return stripe().checkout.sessions.retrieve(sessionId);
+
+/**
+ * Retrieve a Checkout Session by id (for debug or admin).
+ */
+export async function getSession(sessionId) {
+  return stripe.checkout.sessions.retrieve(sessionId);
+}
+
+/**
+ * Verify and parse Stripe webhook event.
+ */
+export function constructWebhookEvent(rawBody, signature) {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) throw new Error("Missing STRIPE_WEBHOOK_SECRET");
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  return stripe.webhooks.constructEvent(rawBody, signature, secret);
 }

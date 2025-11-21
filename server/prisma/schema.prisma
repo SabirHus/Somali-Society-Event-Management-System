@@ -1,7 +1,10 @@
 generator client {
-  datasource db {
+  provider = "prisma-client-js"
+}
+
+datasource db {
   provider = "sqlite"
-  // no url here anymore
+  url      = env("DATABASE_URL")
 }
 
 model Attendee {
@@ -11,13 +14,7 @@ model Attendee {
   email           String
   phone           String?
   quantity        Int      @default(1)
-  status          Status   @default(pending)
+  status          String   @default("pending") // <-- string instead of enum
   code            String   @unique
   stripeSessionId String?  @unique
-}
-
-enum Status {
-  pending
-  paid
-  checked_in
 }
