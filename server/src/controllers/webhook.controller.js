@@ -3,7 +3,7 @@ import { upsertAttendeeFromSession } from '../services/attendee.service.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-06-20' });
 
-export async function stripeWebhook(req, res) {
+export async function handleStripeWebhook(req, res) {
   // Verify signature if you are listening via Stripe CLI
   let event;
   try {

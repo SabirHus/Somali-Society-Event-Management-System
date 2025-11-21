@@ -1,24 +1,20 @@
-import { Router } from 'express';
-import { adminList, adminToggle, adminSummary } from '../controllers/admin.controller.js';
-import { stripeWebhook } from '../controllers/webhook.controller.js';
+// server/src/routes/index.js
+import { Router } from "express";
+
+import publicRoutes from "./public.routes.js";
+import adminRoutes from "./admin.routes.js";        // keep existing admin routes
+import webhookRoutes from "./webhook.routes.js";    // keep existing webhook routes
 
 const router = Router();
 
-// health
-router.get('/health', (_req, res) => res.json({ ok: true }));
+// everything in public.routes.js becomes /api/*
+router.use("/api", publicRoutes);
 
-// public summary used by Register page
-router.get('/summary', async (_req, res) => {
-  const { data } = await (async () => ({ data: await import('../services/attendee.service.js').then(m => m.summary()) }))();
-  res.json({ data });
-});
+// keep your other mounts exactly as before
+router.use("/admin", adminRoutes);
+router.use("/webhooks", webhookRoutes);
 
-// admin
-router.get('/admin/attendees', adminList);
-router.post('/admin/toggle', adminToggle);
-router.get('/admin/summary', adminSummary);
-
-// stripe webhook
-router.post('/webhooks/stripe', stripeWebhook);
+// simple health check
+router.get("/health", (_req, res) => res.json({ ok: true }));
 
 export default router;
