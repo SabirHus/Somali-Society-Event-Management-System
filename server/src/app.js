@@ -1,27 +1,49 @@
-// server/src/app.js
-import "dotenv/config";
-import express from "express";
-import helmet from "helmet";
-import morgan from "morgan";
-import cookieParser from "cookie-parser";
-import { corsMiddleware } from "./config/cors.js";
-import routes from "./routes/index.js";
+// web/src/lib/api.js
 
-const app = express();
+// Where your API lives (falls back to 4000 in dev)
+export const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-app.use(helmet());
-app.use(morgan("dev"));
-app.use(express.json());
-app.use(cookieParser());
-app.use(corsMiddleware);
+// Small fetch helpers with JSON + credentials by default
+async function jsonFetch(url, init = {}) {
+  const res = await fetch(url, {
+    credentials: "include",
+    ...init,
+  });
+  // Non-2xx still try to parse JSON so UI can show a message
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) {
+    const err = new Error(data?.message || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
 
-app.get("/health", (_req, res) => res.json({ ok: true }));
-app.use("/", routes);
+export const api = {
+  get(path, init = {}) {
+    return jsonFetch(`${API_URL}${path}`, init);
+  },
+  post(path, body = {}, init = {}) {
+    return jsonFetch(`${API_URL}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(init.headers || {}),
+      },
+      body: JSON.stringify(body),
+      ...init,
+    });
+  },
+  del(path, init = {}) {
+    return jsonFetch(`${API_URL}${path}`, {
+      method: "DELETE",
+      ...init,
+    });
+  },
+};
 
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-  console.log(`API listening on :${port}`);
-  console.log(`CORS origin: ${process.env.WEB_ORIGIN || "http://localhost:5173"}`);
-});
-
-export default app;
+// Also offer a default export for flexibility
+export default api;
