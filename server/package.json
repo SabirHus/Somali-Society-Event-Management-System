@@ -4,7 +4,9 @@
         "dev": "nodemon --watch src --exec node --env-file .env src/app.js",
         "start": "node src/app.js",
         "prisma:dev": "prisma migrate dev --name init",
-        "prisma:generate": "prisma generate"
+        "prisma:generate": "prisma generate",
+        "prisma:migrate": "prisma migrate dev",
+        "prisma:studio": "prisma studio"
     },
     "dependencies": {
         "@prisma/client": "^5.18.0",
@@ -13,6 +15,7 @@
         "express": "^4.19.2",
         "helmet": "^7.1.0",
         "morgan": "^1.10.0",
+        "qrcode": "^1.5.4",
         "stripe": "^16.6.0"
     },
     "devDependencies": {

@@ -1,8 +1,18 @@
-// Single Prisma client (named export)
+// server/src/models/prisma.js
 import { PrismaClient } from '@prisma/client';
 
-export const prisma = new PrismaClient();
+// Reuse a single PrismaClient in dev (prevents many connections on hot reload)
+const globalForPrisma = globalThis;
 
-process.on('beforeExit', async () => {
-  try { await prisma.$disconnect(); } catch { /* ignore */ }
-});
+// Keep the named export `prisma` (matches the rest of your code)
+let prisma = globalForPrisma.__prisma;
+
+if (!prisma) {
+  prisma = new PrismaClient();
+  // only stash on global in dev; in prod the module cache is enough
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.__prisma = prisma;
+  }
+}
+
+export { prisma };

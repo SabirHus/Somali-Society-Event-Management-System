@@ -18,13 +18,14 @@ export async function upsertAttendeeFromSession(session) {
   const phone = session?.metadata?.phone || session?.customer_details?.phone || null;
 
   // how many tickets?
-  const qty = Number(session?.metadata?.quantity ?? session?.amount_total ? 1 : 1);
+  const qty = Math.max(1, Number(session?.metadata?.quantity ?? 1));
   const results = [];
 
-  for (let i = 0; i < Math.max(1, qty); i++) {
-    const code = makeCode();
+for (let i = 0; i < Math.max(1, qty); i++) {
+  const code = makeCode();
 
-    // If your schema has unique(email)+name, switch to upsert with both fields.
+  // idempotent create: ignore duplicate if webhook retries
+  try {
     const attendee = await prisma.attendee.create({
       data: {
         name,
@@ -32,13 +33,17 @@ export async function upsertAttendeeFromSession(session) {
         phone,
         code,
         checkedIn: false,
-        status: 'PAID',               // old project used PAID/PENDING or similar
-        stripeSessionId: session.id,  // keep traceability
+        status: 'PAID',
+        stripeSessionId: session.id,
       },
     });
-
     results.push(attendee);
+  } catch (err) {
+    // Prisma unique violation – record already created by a prior webhook attempt
+    if (err?.code !== 'P2002') throw err;
+    // if it was a duplicate, just skip pushing and continue the loop
   }
+}
   return results;
 }
 
