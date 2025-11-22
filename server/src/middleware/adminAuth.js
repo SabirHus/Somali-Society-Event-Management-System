@@ -1,19 +1,10 @@
 // server/src/middleware/adminAuth.js
 export function requireAdmin(req, res, next) {
-  const pass =
-    req.get("x-admin-password") ||
-    req.headers["x-admin-password"] ||
-    req.query.pass ||
-    req.body?.adminKey ||
-    "";
+  const expected = (process.env.ADMIN_PASSWORD || '').trim();
+  const got = (req.header('x-admin-password') || '').trim();
 
-  if (!process.env.ADMIN_PASSWORD) {
-    return res.status(500).json({ error: "ADMIN_KEY_not_set" });
+  if (!expected || got !== expected) {
+    return res.sendStatus(401);
   }
-  if (pass !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ error: "unauthorized" });
-  }
-
-  req.isAdmin = true;
   next();
 }

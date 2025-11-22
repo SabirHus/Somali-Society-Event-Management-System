@@ -35,3 +35,19 @@ export async function adminSummary(_req, res, next) {
     next(err);
   }
 }
+
+export async function adminLogin(req, res) {
+  try {
+    const password = (req.body && req.body.password) || "";
+    if (!password) return res.status(400).json({ error: "missing_password" });
+
+    if (password === process.env.ADMIN_PASSWORD) {
+      // Client will stash this in localStorage and attach as a header to admin calls.
+      return res.json({ ok: true });
+    }
+    return res.status(401).json({ error: "invalid_password" });
+  } catch (e) {
+    return res.status(500).json({ error: "server_error" });
+  }
+}
+
