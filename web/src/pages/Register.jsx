@@ -2,6 +2,12 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
+
+// same API as elsewhere
+async function fetchSummary() {
+  return api.get("/summary");
+}
+
 async function verifyAdmin(pass) {
   const res = await fetch("/api/admin/summary", {
     headers: { "x-admin-password": pass || "" },
@@ -10,19 +16,36 @@ async function verifyAdmin(pass) {
 }
 
 export default function Register() {
-  const [loading, setLoading] = useState(false);
+const [loading, setLoading] = useState(false);
+  const [capacity, setCapacity] = useState(null);
   const [remaining, setRemaining] = useState(null);
-  const capacity = 200;
+
 
   const [hasAdmin, setHasAdmin] = useState(!!localStorage.getItem("ADMIN_PASSWORD"));
   const [adminErr, setAdminErr] = useState("");
 
-  useEffect(() => {
-    api.get("/summary").then(r => {
-      const used = (r.data.paid || 0) + (r.data.pending || 0);
-      setRemaining(Math.max(capacity - used, 0));
-    }).catch(() => {});
+ useEffect(() => {
+    let alive = true;
+
+    const load = async () => {
+      try {
+        const s = await fetchSummary(); // {paid,pending,capacity,remaining}
+        if (!alive) return;
+        setCapacity(s.capacity);
+        setRemaining(s.remaining);
+      } catch {}
+    };
+
+    load();
+
+        // optional: auto-refresh every 10s so the number drops while page is open
+    const id = setInterval(load, 10000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
   }, []);
+
 
   useEffect(() => {
     const pass = localStorage.getItem("ADMIN_PASSWORD");
@@ -98,7 +121,7 @@ export default function Register() {
       <div className="card topbar">
         <div className="header-row">
           <h1 className="header-title">Somali Society — Event Registration</h1>
-
+          
           <div className="header-actions">
             <form onSubmit={handleSaveKey} className="inline-form" aria-label="admin unlock">
               <input

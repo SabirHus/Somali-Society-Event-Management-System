@@ -18,6 +18,16 @@ const payloadSchema = z.object({
 export async function createSession(req, res, next) {
   try {
     const data = payloadSchema.parse(req.body || {});
+    const paid = await prisma.attendee.count({ where: { status: "PAID" } });
+    const pending = await prisma.attendee.count({ where: { status: "PENDING" } });
+    const capacity = Number(process.env.CAPACITY || 100);
+    const remaining = Math.max(capacity - (paid + pending), 0);
+
+    // why: avoid overselling when multiple users buy at once
+    if (data.quantity > remaining) {
+      return res.status(409).json({ message: `Only ${remaining} ticket(s) remaining.` });
+    }
+
     const { url } = await createCheckoutSession(data);
     return res.json({ url });
   } catch (err) {
@@ -27,40 +37,31 @@ export async function createSession(req, res, next) {
 
 export async function summary(req, res, next) {
   try {
-    const { summary } = await import('../services/attendee.service.js');
-    const counts = await summary();
-    res.json(counts);
+    const paid = await prisma.attendee.count({ where: { status: "PAID" } });
+    const pending = await prisma.attendee.count({ where: { status: "PENDING" } });
+    const capacity = Number(process.env.CAPACITY || 100);
+    const remaining = Math.max(capacity - (paid + pending), 0);
+    res.json({ paid, pending, capacity, remaining });
   } catch (err) {
     next(err);
   }
 }
-
 export async function checkoutSuccess(req, res, next) {
   try {
     const session_id = req.query.session_id;
-    if (!session_id) return res.status(400).json({ error: 'session_id_required' });
+    if (!session_id) return res.status(400).json({ error: "session_id_required" });
 
-    // Always fetch the Stripe session so we can use customer_details/email
-    const session = await stripe.checkout.sessions.retrieve(session_id, {
-      expand: ['customer_details'],
-    });
-
-    const customerEmail =
-      session?.customer_details?.email ||
-      session?.metadata?.email ||
-      null;
+    const session = await stripe.checkout.sessions.retrieve(session_id, { expand: ["customer_details"] });
+    const customerEmail = session?.customer_details?.email || session?.metadata?.email || null;
 
     let attendee = null;
-
-    // 1) Try to find the attendee by email (works with your current schema)
     if (customerEmail) {
       attendee = await prisma.attendee.findFirst({
         where: { email: customerEmail },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
       });
     }
 
-    // 2) If not found yet, create now (idempotent – guarded by your P2002 try/catch)
     if (!attendee) {
       const created = await upsertAttendeeFromSession(session);
       attendee =
@@ -68,15 +69,13 @@ export async function checkoutSuccess(req, res, next) {
         (customerEmail
           ? await prisma.attendee.findFirst({
               where: { email: customerEmail },
-              orderBy: { createdAt: 'desc' },
+              orderBy: { createdAt: "desc" },
             })
           : null);
     }
 
-    // 3) If still not there, ask client to retry shortly (Success.jsx keeps polling)
     if (!attendee) return res.sendStatus(425);
 
-    // 4) Build the payload your Success.jsx expects
     const qrDataUrl = await QRCode.toDataURL(attendee.code, { margin: 1, width: 256 });
 
     const ics =
@@ -85,24 +84,20 @@ VERSION:2.0
 PRODID:-//Somali Society//Event//EN
 BEGIN:VEVENT
 SUMMARY:Somali Society Event
-DTSTART:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z
-DTEND:${new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().replace(/[-:]/g, '').split('.')[0]}Z
+DTSTART:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z
+DTEND:${new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().replace(/[-:]/g, "").split(".")[0]}Z
 DESCRIPTION=Ticket code: ${attendee.code}
 END:VEVENT
-END:VCALENDAR`.replace(/\n/g, '\r\n');
-
-    const icsBase64 = Buffer.from(ics, 'utf8').toString('base64');
+END:VCALENDAR`.replace(/\n/g, "\r\n");
+    const icsBase64 = Buffer.from(ics, "utf8").toString("base64");
     const googleCalendarUrl =
-      'https://calendar.google.com/calendar/render?action=TEMPLATE' +
-      '&text=' + encodeURIComponent('Somali Society Event') +
-      '&details=' + encodeURIComponent(`Ticket code: ${attendee.code}`);
+      "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+      "&text=" +
+      encodeURIComponent("Somali Society Event") +
+      "&details=" +
+      encodeURIComponent(`Ticket code: ${attendee.code}`);
 
-    return res.json({
-      attendee,
-      qrDataUrl,
-      googleCalendarUrl,
-      icsBase64,
-    });
+    return res.json({ attendee, qrDataUrl, googleCalendarUrl, icsBase64 });
   } catch (err) {
     next(err);
   }
