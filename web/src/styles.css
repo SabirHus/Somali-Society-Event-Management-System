@@ -165,10 +165,14 @@ th, td {
   align-items: center;
 }
 .logo-wrap { 
-  display: flex; align-items: center; margin-left: 8px; 
+  display: flex; 
+  align-items: center; 
+  margin-left: 8px; 
 }
 .logo-img  { 
-  height: 36px; width: auto; display: block; 
+  height: 36px; 
+  width: auto; 
+  display: block; 
 }
 /* make the first top card act like a header row */
 .topbar {
@@ -187,7 +191,7 @@ th, td {
   right: 16px;
   top: 10px;
   width: 110px;              /* bump this up/down as you like */
-  height: auto;
+  height: 85%;
   object-fit: contain;
   pointer-events: none;
   opacity: 0.98;

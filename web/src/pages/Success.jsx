@@ -45,7 +45,23 @@ useEffect(() => {
 
   return (
     <main>
-      <h1>Payment Success 🎟️</h1>
+      <div className="card topbar">
+        <div className="header-row">
+          <h1 className="header-title">Thank you for your Payment 🎟️</h1>
+          
+          <div className="header-actions">
+            <div className="links-wrap">
+              <a href="/" className="button">Tickets</a>
+            </div>
+
+            {/* Logo on the far right */}
+            <div className="logo-wrap">
+              <img className="corner-logo" src="/logo.png" alt="Somali Society logo" />
+            </div>
+
+          </div>
+        </div>
+      </div>
 
       <div className="card">
         <p><strong>Name:</strong> {a.name}</p>
@@ -67,7 +83,7 @@ useEffect(() => {
         <a href={`data:text/calendar;base64,${data.icsBase64}`} download="somali-society.ics">Download iCal</a>
       </div>
 
-      <div className="card"><p><strong>Refund policy:</strong> Refunds up to 48h before event.</p>
+      <div className="card"><p><strong>Refund policy:</strong> Tickets are non-refundable and non-transferable</p>
       </div>
     </main>
   );

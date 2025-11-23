@@ -30,13 +30,6 @@ export const api = {
 }
 
 // Helper: build headers with admin password if we have it
-export function adminHeaders(password) {
-  return {
-    'Content-Type': 'application/json',
-    'x-admin-password': password || '',
-  };
-}
-
 export async function fetchAdminAttendees(password, q = '') {
   const res = await fetch(`/api/admin/attendees${q ? `?q=${encodeURIComponent(q)}` : ''}`, {
     headers: adminHeaders(password),

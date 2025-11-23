@@ -107,6 +107,19 @@ export default function Admin() {
   if (!authed) {
     return (
       <div style={{ maxWidth: '400px', margin: '100px auto', padding: '40px', background: '#f5f5f5', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+        <div style={{textAlign: 'center' }}>
+        <a 
+          href="/" 
+          style={{ 
+            color: '#1a73e8', 
+            textDecoration: 'none',
+            fontSize: '15px',
+            fontWeight: '500'
+          }}
+        >
+          ← Back to Ticket Form
+        </a>
+      </div>
         <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#1a73e8' }}>🔐 Admin Login</h1>
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '20px' }}>
@@ -176,6 +189,7 @@ export default function Admin() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <h1 style={{ margin: 0 }}>📊 Admin Dashboard</h1>
         <div>
+          <a href="/" className="button">Tickets</a>
           <a href="/scan" style={{ marginRight: '20px', color: '#1a73e8', textDecoration: 'none', fontWeight: '500' }}>
             📱 Scanner
           </a>

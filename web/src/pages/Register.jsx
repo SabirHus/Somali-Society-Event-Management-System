@@ -8,21 +8,10 @@ async function fetchSummary() {
   return api.get("/summary");
 }
 
-async function verifyAdmin(pass) {
-  const res = await fetch("/api/admin/summary", {
-    headers: { "x-admin-password": pass || "" },
-  });
-  return res.ok;
-}
-
 export default function Register() {
 const [loading, setLoading] = useState(false);
   const [capacity, setCapacity] = useState(null);
   const [remaining, setRemaining] = useState(null);
-
-
-  const [hasAdmin, setHasAdmin] = useState(!!localStorage.getItem("ADMIN_PASSWORD"));
-  const [adminErr, setAdminErr] = useState("");
 
  useEffect(() => {
     let alive = true;
@@ -44,16 +33,6 @@ const [loading, setLoading] = useState(false);
       alive = false;
       clearInterval(id);
     };
-  }, []);
-
-
-  useEffect(() => {
-    const pass = localStorage.getItem("ADMIN_PASSWORD");
-    if (!pass) return;
-    verifyAdmin(pass).then(ok => {
-      setHasAdmin(ok);
-      if (!ok) localStorage.removeItem("ADMIN_PASSWORD");
-    });
   }, []);
 
   async function onSubmit(e) {
@@ -91,30 +70,6 @@ const [loading, setLoading] = useState(false);
     }
   }
 
-  async function handleSaveKey(e) {
-    e.preventDefault();
-    setAdminErr("");
-    const form = e.currentTarget;
-    const v = form.adminKey.value.trim();
-    form.reset();
-    if (!v) {
-      setHasAdmin(false);
-      localStorage.removeItem("ADMIN_PASSWORD");
-      setAdminErr("Please enter a password.");
-      return;
-    }
-    const ok = await verifyAdmin(v);
-    if (ok) {
-      localStorage.setItem("ADMIN_PASSWORD", v);
-      setHasAdmin(true);
-      setAdminErr(""); // no success text
-    } else {
-      localStorage.removeItem("ADMIN_PASSWORD");
-      setHasAdmin(false);
-      setAdminErr("Incorrect password.");
-    }
-  }
-
   return (
     <main>
       {/* Header card with logo at top-right */}
@@ -123,25 +78,10 @@ const [loading, setLoading] = useState(false);
           <h1 className="header-title">Somali Society — Event Registration</h1>
           
           <div className="header-actions">
-            <form onSubmit={handleSaveKey} className="inline-form" aria-label="admin unlock">
-              <input
-                name="adminKey"
-                type="password"
-                placeholder="Admin password"
-                autoComplete="off"
-              />
-              <button type="submit" className="button">Save</button>
-            </form>
-            {adminErr && <span className="note error">{adminErr}</span>}
-            
             <div className="links-wrap">
               <a href="/" className="button">Tickets</a>
-              {hasAdmin && (
-                <>
-                  <a href="/admin" className="button">Admin</a>
-                  <a href="/scan" className="button">Scan</a>
-                </>
-              )}
+              <a href="/admin" className="button">Admin</a>
+              <a href="/scan" className="button">Scan</a>
             </div>
 
             {/* Logo on the far right */}

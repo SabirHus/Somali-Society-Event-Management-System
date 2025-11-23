@@ -6,7 +6,7 @@ CREATE TABLE "Admin" (
     "name" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "Admin_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "key" PRIMARY KEY ("id")
 );
 
 -- CreateTable
