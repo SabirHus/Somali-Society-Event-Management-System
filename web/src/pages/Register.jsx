@@ -139,7 +139,7 @@ const [loading, setLoading] = useState(false);
               {hasAdmin && (
                 <>
                   <a href="/admin" className="button">Admin</a>
-                  <a href="/admin/scan" className="button">Scan</a>
+                  <a href="/scan" className="button">Scan</a>
                 </>
               )}
             </div>

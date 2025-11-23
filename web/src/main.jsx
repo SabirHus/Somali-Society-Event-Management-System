@@ -11,7 +11,8 @@ const router = createBrowserRouter([
   { path: "/", element: <Register /> },
   { path: "/success", element: <Success /> },
   { path: "/admin", element: <Admin /> },
-  { path: "/admin/scan", element: <Scan /> }
+  { path: "/scan", element: <Scan /> }, 
+  { path: "/admin/scan", element: <Scan /> } 
 ]);
 
 createRoot(document.getElementById("root")).render(
