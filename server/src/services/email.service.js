@@ -1,18 +1,25 @@
-import nodemailer from 'nodemailer';
+// server/src/services/email.service.js
+import { Resend } from 'resend';
 import QRCode from 'qrcode';
+import dotenv from 'dotenv';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || 587),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-});
+// Explicitly load .env file
+dotenv.config();
 
+// Initialize Resend with API key from environment
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+/**
+ * Send order confirmation email with QR code ticket
+ */
 export async function sendOrderEmail({ email, name, code, quantity, amount }) {
   try {
+    // Validate API key is present
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY not found in environment variables');
+    }
+
+    // Generate QR code from ticket code
     const qrCodeDataURL = await QRCode.toDataURL(code, {
       errorCorrectionLevel: 'H',
       type: 'image/png',
@@ -24,10 +31,12 @@ export async function sendOrderEmail({ email, name, code, quantity, amount }) {
       }
     });
 
+    // Extract base64 data (remove data URL prefix)
     const qrBase64 = qrCodeDataURL.split(',')[1];
 
-    const mailOptions = {
-      from: process.env.MAIL_FROM || 'Somali Society <noreply@example.com>',
+    // Send email via Resend
+    const { data, error } = await resend.emails.send({
+      from: process.env.MAIL_FROM || 'Somali Society Salford <onboarding@resend.dev>',
       to: email,
       subject: `✅ ${process.env.EVENT_TITLE || 'Event'} - Ticket Confirmation`,
       html: `
@@ -52,7 +61,7 @@ export async function sendOrderEmail({ email, name, code, quantity, amount }) {
               <div style="background: white; padding: 40px 20px; text-align: center; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px;">
                 <h2 style="margin: 0 0 10px 0; color: #1a73e8; font-size: 22px;">📱 Your QR Ticket</h2>
                 <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;"><strong>Show this QR code at check-in</strong></p>
-                <img src="cid:qrcode" alt="QR Code" style="max-width: 300px; width: 100%; height: auto;" />
+                <img src="data:image/png;base64,${qrBase64}" alt="QR Code" style="max-width: 300px; width: 100%; height: auto;" />
                 <p style="margin: 20px 0 0 0; font-size: 12px; color: #999;">
                   Code: <strong style="color: #333;">${code}</strong>
                 </p>
@@ -85,20 +94,19 @@ export async function sendOrderEmail({ email, name, code, quantity, amount }) {
         </body>
         </html>
       `,
-      attachments: [
-        {
-          filename: 'qr-code.png',
-          content: qrBase64,
-          encoding: 'base64',
-          cid: 'qrcode'
-        }
-      ]
-    };
+    });
 
- const info = await transporter.sendMail(mailOptions);
+    // Check for errors from Resend
+    if (error) {
+      console.error('❌ Resend email error:', error);
+      throw error;
+    }
+
+    // Success!
     console.log('✅ Email sent successfully to:', email);
-    console.log('Message ID:', info.messageId);
-    return info;
+    console.log('Message ID:', data.id);
+    return data;
+    
   } catch (error) {
     console.error('❌ Email send failed:', error);
     throw error;

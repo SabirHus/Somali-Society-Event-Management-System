@@ -104,7 +104,6 @@ const [loading, setLoading] = useState(false);
         <label>Email<br /><input name="email" required type="email" placeholder="ayaan@example.com" /></label><br />
         <label>Phone (optional)<br /><input name="phone" placeholder="+44…" /></label><br />
         <label>Tickets<br /><input name="quantity" type="number" min="1" max="10" defaultValue="1" /></label><br />
-        <br></br>
         <button disabled={loading} className="button">{loading ? "Redirecting…" : "Pay with Stripe"}</button>
       </form>
     </main>
