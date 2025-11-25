@@ -1,19 +1,26 @@
-// server/src/routes/public.routes.js
+// server/src/routes/public.routes.js - COMPLETE REPLACEMENT
 import { Router } from "express";
-import { createSession, summary, checkoutSuccess  } from "../controllers/checkout.controller.js";
-import { adminLogin } from "../controllers/admin.controller.js";
+import { 
+  createSession, 
+  summary, 
+  checkoutSuccess 
+} from "../controllers/checkout.controller.js";
+import { checkoutRateLimiter } from "../middleware/rate-limit.js";
+import { asyncHandler } from "../middleware/error-handler.js";
 
 const router = Router();
 
-// POST /api/checkout/session
-router.post("/checkout/session", createSession);
+// GET /api/summary - Get capacity info
+router.get("/summary", asyncHandler(summary));
 
-// GET /api/summary
-router.get("/summary", summary);
+// POST /api/checkout/session - Create Stripe checkout
+router.post(
+  "/checkout/session", 
+  checkoutRateLimiter, // Limit: 10 requests per hour
+  asyncHandler(createSession)
+);
 
-// GET /api/checkout/success
-router.get('/checkout/success', checkoutSuccess);   // <-- add/ensure this line
-
-router.post("/admin/login", adminLogin);
+// GET /api/checkout/success - Get attendee details after payment
+router.get("/checkout/success", asyncHandler(checkoutSuccess));
 
 export default router;

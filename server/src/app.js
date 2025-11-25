@@ -1,12 +1,17 @@
-// server/src/app.js - FINAL FIXED VERSION
+// server/src/app.js - COMPLETE REPLACEMENT
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import Stripe from 'stripe';
 import { prisma } from './models/prisma.js';
 import { sendOrderEmail } from './services/email.service.js';
+import { upsertAttendeeFromSession } from './services/attendee.service.js';
 import publicRoutes from './routes/public.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import { requireAuth } from './middleware/auth.middleware.js';
+import { rateLimiter } from './middleware/rate-limit.js';
+import { errorHandler } from './middleware/error-handler.js';
+import logger from './utils/logger.js';
 
 const app = express();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -29,66 +34,71 @@ app.post('/webhooks/stripe',
         process.env.STRIPE_WEBHOOK_SECRET
       );
     } catch (err) {
-      console.error('❌ Webhook signature verification failed:', err.message);
+      logger.error('Webhook signature verification failed:', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    console.log('✅ Webhook received:', event.type);
+    logger.info(`Webhook received: ${event.type}`);
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       
       try {
-        console.log('🔍 Session metadata:', JSON.stringify(session.metadata, null, 2));
+        logger.info('Processing checkout session:', {
+          sessionId: session.id,
+          metadata: session.metadata
+        });
         
         const { name, email, phone, quantity } = session.metadata;
         
-        // Validate that we have the required data
         if (!email || !name) {
-          console.error('❌ CRITICAL: email or name is missing from metadata!');
-          console.error('This is likely a test trigger with empty metadata.');
-          console.error('Metadata received:', session.metadata);
-          console.error('⚠️  Skipping this webhook - it doesn\'t have real payment data');
-          return res.json({ received: true, skipped: true, reason: 'missing_metadata' });
+          logger.error('Missing required metadata in webhook', {
+            sessionId: session.id,
+            metadata: session.metadata
+          });
+          return res.json({ 
+            received: true, 
+            skipped: true, 
+            reason: 'missing_metadata' 
+          });
         }
         
-        const code = `SS-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const parsedQuantity = parseInt(quantity) || 1;
+        // Use service function to create attendees (handles duplicates automatically)
+        const attendees = await upsertAttendeeFromSession(session);
         
-        console.log('📝 Creating attendee with:', { name, email, phone, quantity: parsedQuantity, code });
-        
-        const attendee = await prisma.attendee.create({
-          data: {
-            name,
-            email,
-            phone: phone || null,
-            quantity: parsedQuantity,
-            status: 'PAID',
-            code,
-            stripeSessionId: session.id,
-            checkedIn: false
-          }
+        if (attendees.length === 0) {
+          logger.warn('No attendees created (possibly duplicate webhook)', {
+            sessionId: session.id
+          });
+          return res.json({ received: true, skipped: true, reason: 'duplicate' });
+        }
+
+        logger.info(`Created ${attendees.length} attendee(s)`, {
+          sessionId: session.id,
+          attendeeIds: attendees.map(a => a.id)
         });
 
-        console.log('✅ Attendee created:', attendee.id, 'with code:', code);
-
-        console.log('📧 Attempting to send email to:', email);
-        
+        // Send confirmation email
+        const primaryAttendee = attendees[0];
         await sendOrderEmail({
-          email,
-          name,
-          code,
-          quantity: parsedQuantity,
+          email: primaryAttendee.email,
+          name: primaryAttendee.name,
+          code: primaryAttendee.code,
+          quantity: attendees.length,
           amount: session.amount_total / 100
         });
 
-        console.log('✅ Email sent successfully to:', email);
-        console.log('🎉 COMPLETE SUCCESS! Payment processed and email sent!');
+        logger.info('Confirmation email sent', {
+          email: primaryAttendee.email,
+          code: primaryAttendee.code
+        });
         
       } catch (err) {
-        console.error('❌ Error processing webhook:', err);
-        console.error('❌ Error details:', err.message);
-        console.error('❌ Stack trace:', err.stack);
+        logger.error('Error processing webhook:', {
+          error: err.message,
+          stack: err.stack,
+          sessionId: session.id
+        });
         return res.status(500).json({ error: 'Failed to process payment' });
       }
     }
@@ -99,34 +109,72 @@ app.post('/webhooks/stripe',
 // ============================================
 // MIDDLEWARE (AFTER WEBHOOK)
 // ============================================
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  crossOriginEmbedderPolicy: false
+}));
+
+// CORS configuration
 app.use(cors({ 
   origin: WEB_ORIGIN,
-  credentials: true 
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Apply rate limiting to API routes
+app.use('/api', rateLimiter);
 
 // ============================================
 // ROUTES
 // ============================================
 app.use('/api', publicRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/admin', requireAuth, authRoutes);
+app.use('/api/auth', requireAuth, authRoutes);
 
+// Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error'
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    mode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'test' : 'live'
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📧 Webhook endpoint: http://localhost:4000/webhooks/stripe`);
-  console.log(`🌐 CORS enabled for: ${WEB_ORIGIN}`);
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ 
+    error: 'Not Found',
+    path: req.path 
+  });
+});
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
+
+// ============================================
+// SERVER START
+// ============================================
+const server = app.listen(PORT, () => {
+  logger.info(`Server running on http://localhost:${PORT}`);
+  logger.info(`Webhook endpoint: http://localhost:${PORT}/webhooks/stripe`);
+  logger.info(`CORS enabled for: ${WEB_ORIGIN}`);
+  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`Stripe mode: ${process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'TEST' : 'LIVE'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    logger.info('HTTP server closed');
+    prisma.$disconnect();
+    process.exit(0);
+  });
 });
 
 export default app;
