@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@prisma/client": "^7.0.0",
+    "bootstrap-icons": "^1.13.1",
     "dayjs": "^1.11.19",
     "nodemailer": "^7.0.10",
     "pdfkit": "^0.17.2",

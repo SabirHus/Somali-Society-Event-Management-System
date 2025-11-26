@@ -4,6 +4,10 @@ import logger from '../utils/logger.js';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Define your social media links here
+const INSTAGRAM_URL = 'https://www.instagram.com/'; // Replace with the actual link
+const WHATSAPP_GC_URL = 'https://chat.whatsapp.com/Ba1DrDXZpRo3N4aWrcV6rl'; // Replace with the actual link
+
 async function generateQRCodeBuffer(text) {
   try {
     const buffer = await QRCode.toBuffer(text, {
@@ -23,7 +27,7 @@ async function generateQRCodeBuffer(text) {
   }
 }
 
-export async function sendOrderEmail({ email, name, code, quantity, amount, eventName }) {
+export async function sendOrderEmail({ email, name, code, quantity, amount, location, eventName }) {
   try {
     const qrCodeBuffer = await generateQRCodeBuffer(code);
 
@@ -129,6 +133,10 @@ export async function sendOrderEmail({ email, name, code, quantity, amount, even
                 <span class="value">${eventName}</span>
               </div>
               <div class="info-row">
+                <span class="label">Location:</span>
+                <span class="value">${location}</span>
+              </div>
+              <div class="info-row">
                 <span class="label">Booking Code:</span>
                 <span class="value">${code}</span>
               </div>
@@ -149,13 +157,21 @@ export async function sendOrderEmail({ email, name, code, quantity, amount, even
             
             <h3>What to bring:</h3>
             <ul>
-              <li>✅ Your booking code: <strong>${code}</strong></li>
               <li>✅ The attached QR code (printed or on your phone)</li>
-              <li>✅ Valid photo ID</li>
+              <li>✅ Your booking code: <strong>${code}</strong></li>
             </ul>
             
             <h3>Need Help?</h3>
-            <p>If you have any questions, please contact us at <a href="mailto:contact@somsocsal.com">contact@somsocsal.com</a></p>
+            <p>For more information, check out our social media:</p>
+<div class="social-links" style="margin-top: 15px;">
+    <a href="${INSTAGRAM_URL}" target="_blank" style="text-decoration: none; color: #0074D9; display: inline-flex; align-items: center; font-weight: 500;">
+        <img src="/.instagram.png"" alt="Instagram" style="width: 24px; height: 24px; margin-right: 8px;">
+        Check our Instagram
+    </a>
+    <a href="${WHATSAPP_GC_URL}" target="_blank" style="text-decoration: none; color: #0074D9; display: inline-flex; align-items: center; font-weight: 500;">
+        <img src="/.whatsapp.png" alt="WhatsApp" style="width: 24px; height: 24px; margin-right: 8px;">
+        Join The WhatsApp Group
+    </a>
           </div>
           
           <div class="footer">

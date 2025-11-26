@@ -7,7 +7,7 @@ export default function Terms() {
   return (
     <div className="legal-container">
       <div className="legal-header">
-        <button onClick={() => navigate(-1)} className="back-btn">
+        <button onClick={() => navigate('/')} className="back-btn">
           ← Back
         </button>
         <h1>Terms & Conditions</h1>

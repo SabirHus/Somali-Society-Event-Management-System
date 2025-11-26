@@ -76,6 +76,14 @@
   background: #28A745 !important;
 }
 
+.btn-backMain {
+  background: #2c303d !important;
+}
+
+.btn-backMain:hover {
+  background: #1e2026 !important;
+}
+
 .btn-logout {
   background: #DC3545 !important;
 }
@@ -396,6 +404,21 @@ code {
 }
 
 /* Delete Button Styles */
+.btn-edit {
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Delete Button Styles */
 .btn-delete {
   background: #DC3545;
   color: white;
@@ -404,7 +427,7 @@ code {
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 1rem;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
@@ -437,6 +460,23 @@ code {
   margin: 0;
   padding: 8px 12px;
   font-size: 0.8rem;
+}
+
+/* Table Actions for Attendees (horizontal) */
+.table-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.table-actions .btn,
+.table-actions .btn-small,
+.table-actions .btn-delete {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  font-weight: 600;
 }
 
 /* Modal Styles */

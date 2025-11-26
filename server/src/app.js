@@ -84,6 +84,7 @@ app.post('/webhooks/stripe',
           code: primaryAttendee.code,
           quantity: attendees.length,
           amount: session.amount_total / 100,
+          location: primaryAttendee.event.location,
           eventName: primaryAttendee.event.name
         });
 

@@ -562,6 +562,9 @@ const sortedAttendees = [...filteredAttendees].sort((a, b) => {
       <div className="admin-header">
         <h1>Admin Dashboard</h1>
         <div className="admin-nav">
+          <button onClick={() => navigate('/')} className="btn-backMain">
+            ← Back to Main Page
+          </button>
           <button onClick={() => setView('events')} className={view === 'events' ? 'active' : ''}>
             Events
           </button>
@@ -875,21 +878,21 @@ const sortedAttendees = [...filteredAttendees].sort((a, b) => {
                       </td>
                       <td>{new Date(attendee.createdAt).toLocaleDateString()}</td>
                       <td>
-                        <button
-                          onClick={() => navigate(`/admin/attendees/${attendee.id}/edit`)}
-                          className="btn btn-small"
-                        >                 
-                          Edit
-                        </button>
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => handleDeleteAttendee(attendee.id, attendee.name)}
-                          className="btn-delete"
-                        >
-                          Delete
-                        </button>
-                      </td>
+  <button
+    onClick={() => navigate(`/admin/attendees/${attendee.id}/edit`)}
+    className="btn-edit"
+  >
+    Edit
+  </button>
+</td>
+<td>
+  <button
+    onClick={() => handleDeleteAttendee(attendee.id, attendee.name)}
+    className="btn-delete"
+  >
+    Delete
+  </button>
+</td>
                     </tr>
                   ))
                 )}

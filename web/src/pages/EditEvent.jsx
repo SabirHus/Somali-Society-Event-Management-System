@@ -105,31 +105,14 @@ export default function EditEvent() {
 
   return (
     <div className="admin-container">
-      {/* HEADER WITH INLINE STYLES */}
-      <div className="admin-header" style={{ padding: '20px 40px' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          width: '100%'
-        }}>
-          <h1 style={{ margin: 0, color: 'white', fontSize: '1.8rem' }}>Edit Event</h1>
-          <button 
-            onClick={() => navigate('/admin')} 
-            style={{
-              background: 'rgba(255, 255, 255, 0.25)',
-              color: 'white',
-              border: '2px solid rgba(255, 255, 255, 0.5)',
-              padding: '10px 24px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '700',
-              fontSize: '1rem',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            ← Back to Dashboard
-          </button>
+      <div className="admin-header">
+        <div className="header-content">
+          <div className="header-left">
+            <h1>Edit Event</h1>
+            <button onClick={() => navigate('/admin')} className="back-btn-inline">
+              ← Back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
 
@@ -140,31 +123,8 @@ export default function EditEvent() {
           <div className="loading">Loading event...</div>
         ) : (
           <>
-            {/* TITLE BOX WITH INLINE STYLES */}
-            <div style={{
-              background: 'white',
-              padding: '32px 40px',
-              borderRadius: '12px',
-              marginBottom: '32px',
-              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)',
-              border: '3px solid #E3F2FD'
-            }}>
-              <h2 style={{ 
-                margin: '0', 
-                color: '#003B73', 
-                fontSize: '1.6rem',
-                fontWeight: '600'
-              }}>
-                Editing: <span style={{
-                  color: '#0074D9',
-                  fontWeight: '800',
-                  fontSize: '2.2rem',
-                  textDecoration: 'underline',
-                  textDecorationColor: 'rgba(0, 116, 217, 0.4)',
-                  textDecorationThickness: '4px',
-                  textUnderlineOffset: '6px'
-                }}>{formData.name}</span>
-              </h2>
+            <div className="edit-page-title">
+              <h2>Editing: <span className="highlight-text">{formData.name}</span></h2>
             </div>
 
             <form onSubmit={handleSubmit} className="event-form">
