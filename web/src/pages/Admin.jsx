@@ -592,7 +592,7 @@ export default function Admin() {
                             View Attendees
                           </button>
                           <button
-                            onClick={() => handleEditEvent(event)}
+                            onClick={() => navigate(`/admin/events/${event.id}/edit`)}
                             className="btn btn-small"
                           >
                             Edit
@@ -784,6 +784,7 @@ export default function Admin() {
                   <th>Code</th>
                   <th>Checked In</th>
                   <th>Registered</th>
+                  <th>Edit</th>
                   <th>Delete</th>
                 </tr>
               </thead>
@@ -813,9 +814,16 @@ export default function Admin() {
                       <td>{new Date(attendee.createdAt).toLocaleDateString()}</td>
                       <td>
                         <button
+                          onClick={() => navigate(`/admin/attendees/${attendee.id}/edit`)}
+                          className="btn btn-small"
+                        >                 
+                          Edit
+                        </button>
+                      </td>
+                      <td>
+                        <button
                           onClick={() => handleDeleteAttendee(attendee.id, attendee.name)}
                           className="btn-delete"
-                          title="Delete attendee"
                         >
                           Delete
                         </button>

@@ -560,4 +560,34 @@ code {
   }
 }
 
+/* Event Info Box */
+.event-info-box {
+  background: rgba(255, 255, 255, 0.95);
+  border-left: 4px solid #0074D9;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  color: #003B73;
+}
+
+/* Checkbox Label */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.checkbox-label span {
+  font-weight: 600;
+  color: white;
+}
 }

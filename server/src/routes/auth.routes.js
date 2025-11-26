@@ -203,6 +203,62 @@ router.delete(
   })
 );
 
+// GET /api/auth/attendees/:id - Get single attendee
+router.get(
+  '/attendees/:id',
+  adminRateLimiter,
+  asyncHandler(async (req, res) => {
+    const attendee = await prisma.attendee.findUnique({
+      where: { id: req.params.id },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
+    });
+
+    if (!attendee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Attendee not found'
+      });
+    }
+
+    res.json(attendee);
+  })
+);
+
+// PUT /api/auth/attendees/:id - Update attendee
+router.put(
+  '/attendees/:id',
+  adminRateLimiter,
+  asyncHandler(async (req, res) => {
+    const { name, email, phone, checkedIn } = req.body;
+
+    const attendee = await prisma.attendee.update({
+      where: { id: req.params.id },
+      data: {
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(phone !== undefined && { phone }),
+        ...(checkedIn !== undefined && { checkedIn })
+      },
+      include: {
+        event: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Attendee updated successfully',
+      attendee
+    });
+  })
+);
+
 // PUT /api/auth/events/:id - Update event
 router.put(
   '/events/:id',
