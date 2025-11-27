@@ -1,4 +1,5 @@
-// server/src/routes/auth.routes.js - COMPLETE REPLACEMENT
+// server/src/routes/auth.routes.js - Protected Routes (Requires JWT Authentication)
+
 import express from 'express';
 import { prisma } from '../models/prisma.js';
 import { registerAdmin, loginAdmin } from '../services/auth.service.js';
@@ -8,7 +9,9 @@ import { asyncHandler } from '../middleware/error-handler.js';
 
 const router = express.Router();
 
-// POST /api/auth/register - Register new admin
+// --- Public/Unprotected Routes ---
+
+// POST /api/auth/register - Register new admin (usually run once)
 router.post('/register', asyncHandler(async (req, res) => {
   const { email, password, name } = req.body;
   
@@ -59,7 +62,7 @@ router.post(
       const result = await loginAdmin({ email, password });
       res.json(result);
     } catch (err) {
-      // Generic error - don't reveal if user exists
+      // Generic error for security
       res.status(401).json({ 
         error: 'invalid_credentials',
         message: 'Invalid email or password'
@@ -68,78 +71,7 @@ router.post(
   })
 );
 
-// GET /api/auth/attendees - List attendees (protected)
-router.get(
-  '/attendees',
-  adminRateLimiter, // Limit: 50 requests per 15 minutes
-  asyncHandler(adminList)
-);
-
-// POST /api/auth/toggle-checkin - Toggle check-in (protected)
-router.post(
-  '/toggle-checkin',
-  adminRateLimiter,
-  asyncHandler(adminToggle)
-);
-
-// POST /api/auth/attendees/:code/checkin - Check in by code
-router.post(
-  '/attendees/:code/checkin',
-  adminRateLimiter,
-  asyncHandler(async (req, res) => {
-    const { toggleCheckInByCode } = await import('../services/attendee.service.js');
-    const attendee = await toggleCheckInByCode(req.params.code);
-    res.json({
-      success: true,
-      message: attendee.checkedIn ? 'Checked in successfully' : 'Check-in removed',
-      attendee
-    });
-  })
-);
-
-// DELETE /api/auth/attendees/:id - Delete attendee
-router.delete(
-  '/attendees/:id',
-  adminRateLimiter,
-  asyncHandler(async (req, res) => {
-    const attendeeId = req.params.id;
-    
-    console.log('Attempting to delete attendee:', attendeeId);
-    
-    try {
-      // Check if attendee exists
-      const existingAttendee = await prisma.attendee.findUnique({
-        where: { id: attendeeId }
-      });
-
-      if (!existingAttendee) {
-        return res.status(404).json({
-          success: false,
-          message: 'Attendee not found'
-        });
-      }
-
-      // Delete the attendee
-      await prisma.attendee.delete({
-        where: { id: attendeeId }
-      });
-      
-      console.log('Attendee deleted successfully:', attendeeId);
-      
-      res.json({
-        success: true,
-        message: 'Attendee deleted successfully'
-      });
-      
-    } catch (error) {
-      console.error('Delete attendee error:', error);
-      res.status(500).json({
-        success: false,
-        message: `Failed to delete attendee: ${error.message}`
-      });
-    }
-  })
-);
+// --- Protected Routes (Require JWT & Admin Rate Limit) ---
 
 // DELETE /api/auth/events/:id - Delete event (FORCE DELETE)
 router.delete(
@@ -203,6 +135,73 @@ router.delete(
   })
 );
 
+
+// LIST /api/auth/attendees - List attendees
+router.get(
+  '/attendees',
+  adminRateLimiter,
+  asyncHandler(adminList)
+);
+
+// POST /api/auth/attendees/:code/checkin - Check in by code (Scanner/Manual)
+router.post(
+  '/attendees/:code/checkin',
+  adminRateLimiter,
+  asyncHandler(async (req, res) => {
+    const { toggleCheckInByCode } = await import('../services/attendee.service.js');
+    const attendee = await toggleCheckInByCode(req.params.code);
+    res.json({
+      success: true,
+      message: attendee.checkedIn ? 'Checked in successfully' : 'Check-in removed',
+      attendee
+    });
+  })
+);
+
+// DELETE /api/auth/attendees/:id - Delete single attendee
+router.delete(
+  '/attendees/:id',
+  adminRateLimiter,
+  asyncHandler(async (req, res) => {
+    const attendeeId = req.params.id;
+    
+    console.log('Attempting to delete attendee:', attendeeId);
+    
+    try {
+      // Check if attendee exists
+      const existingAttendee = await prisma.attendee.findUnique({
+        where: { id: attendeeId }
+      });
+
+      if (!existingAttendee) {
+        return res.status(404).json({
+          success: false,
+          message: 'Attendee not found'
+        });
+      }
+
+      // Delete the attendee
+      await prisma.attendee.delete({
+        where: { id: attendeeId }
+      });
+      
+      console.log('Attendee deleted successfully:', attendeeId);
+      
+      res.json({
+        success: true,
+        message: 'Attendee deleted successfully'
+      });
+      
+    } catch (error) {
+      console.error('Delete attendee error:', error);
+      res.status(500).json({
+        success: false,
+        message: `Failed to delete attendee: ${error.message}`
+      });
+    }
+  })
+);
+
 // GET /api/auth/attendees/:id - Get single attendee
 router.get(
   '/attendees/:id',
@@ -259,7 +258,7 @@ router.put(
   })
 );
 
-// PUT /api/auth/events/:id - Update event
+// PUT /api/auth/events/:id - Update event fields (used by modal/edit page)
 router.put(
   '/events/:id',
   adminRateLimiter,
@@ -268,6 +267,7 @@ router.put(
     const { name, description, location, eventDate, eventTime, price, capacity } = req.body;
     
     try {
+      // Logic duplicated from event.service updateEvent function, should call it if possible
       const event = await prisma.event.update({
         where: { id: eventId },
         data: {

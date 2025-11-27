@@ -4,6 +4,7 @@ import './Legal.css';
 export default function Privacy() {
   const navigate = useNavigate();
 
+  // --- Render ---
   return (
     <div className="legal-container">
       <div className="legal-header">
@@ -71,7 +72,8 @@ export default function Privacy() {
           <ul>
             <li><strong>Stripe:</strong> Payment processing (secure, PCI-compliant)</li>
             <li><strong>Resend:</strong> Email delivery service</li>
-            <li><strong>Vercel</strong> Hosting and Database infrastructure (PostgreSQL/Neon via Prisma)</li>
+            {/* Updated based on Vercel hosting plan */}
+            <li><b>Vercel:</b> Hosting for application code (front-end and back-end APIs)</li>
           </ul>
 
           <h3>4.2 We Do NOT:</h3>
@@ -94,12 +96,12 @@ export default function Privacy() {
           <h2>5. Data Retention</h2>
           <p>We retain your data for the following periods:</p>
           <ul>
-            <li><strong>Booking Records:</strong> 7 years (for financial and tax compliance)</li>
+            <li><b>Booking Records:</b> 7 years (for financial and tax compliance)</li>
             <li><strong>Email Confirmations:</strong> Indefinitely (in your email inbox)</li>
             <li><strong>Marketing Data:</strong> Until you unsubscribe or request deletion</li>
             <li><strong>Website Analytics:</strong> Up to 2 years</li>
           </ul>
-          <p>After these periods, we will securely delete or anonymize your data.</p>
+          <p>After these periods, we securely delete or anonymize booking data.</p>
         </section>
 
         <section>
@@ -207,7 +209,7 @@ export default function Privacy() {
 
         <p className="legal-footer">
           <strong>Last Reviewed:</strong> November 2025<br />
-          <strong>Version:</strong> 1.0
+          <b>Version:</b> 1.1
         </p>
       </div>
     </div>

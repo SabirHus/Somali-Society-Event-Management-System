@@ -4,6 +4,7 @@ import './Legal.css';
 export default function Terms() {
   const navigate = useNavigate();
 
+  // --- Render ---
   return (
     <div className="legal-container">
       <div className="legal-header">
@@ -296,7 +297,7 @@ export default function Terms() {
 
         <p className="legal-footer">
           <strong>Last Updated:</strong> November 2025<br />
-          <strong>Version:</strong> 1.0
+          <strong>Version:</strong> 1.1
         </p>
       </div>
     </div>

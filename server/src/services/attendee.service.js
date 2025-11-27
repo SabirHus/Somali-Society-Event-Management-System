@@ -1,9 +1,15 @@
+// server/src/services/attendee.service.js - Business Logic for Attendees
+
 import { prisma } from "../models/prisma.js";
 import { customAlphabet } from "nanoid";
 import logger from "../utils/logger.js";
 
+// Custom alphabet for generating unique, readable booking codes (excluding ambiguous chars)
 const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 8);
 
+// --- Internal Helpers ---
+
+/** Generates a unique, non-colliding booking code (e.g., SS-ABC12345). */
 async function generateUniqueCode() {
   let code;
   let exists = true;
@@ -17,6 +23,11 @@ async function generateUniqueCode() {
   return code;
 }
 
+// --- Public Service Functions ---
+
+/** * Creates attendee records based on a successful Stripe session webhook event.
+ * Handles single or multiple tickets (guests).
+ */
 export async function upsertAttendeeFromSession(session) {
   const { name, email, phone, quantity, eventId } = session.metadata;
 
@@ -30,7 +41,7 @@ export async function upsertAttendeeFromSession(session) {
     quantity
   });
 
-  // Check if session already processed (look for the primary attendee)
+  // 1. Check if session was already processed (CRITICAL for webhooks)
   const existing = await prisma.attendee.findFirst({
     where: { 
       stripeSessionId: session.id 
@@ -38,20 +49,16 @@ export async function upsertAttendeeFromSession(session) {
   });
 
   if (existing) {
-    logger.warn('Session already processed', {
+    logger.warn('Session already processed (duplicate webhook)', {
       sessionId: session.id,
       attendeeId: existing.id
     });
     
-    // Return all attendees for this purchase (same email + event + similar time)
+    // Attempt to return all attendees created during the original process
     const allAttendees = await prisma.attendee.findMany({
       where: {
-        email: email,
-        eventId: eventId,
-        createdAt: {
-          gte: new Date(existing.createdAt.getTime() - 10000),
-          lte: new Date(existing.createdAt.getTime() + 10000)
-        }
+        // Use the original session ID for lookup
+        stripeSessionId: session.id
       },
       include: { 
         event: {
@@ -69,7 +76,7 @@ export async function upsertAttendeeFromSession(session) {
     return allAttendees;
   }
 
-  // Verify event exists and has capacity
+  // 2. Verify capacity
   const event = await prisma.event.findUnique({
     where: { id: eventId },
     include: {
@@ -91,63 +98,45 @@ export async function upsertAttendeeFromSession(session) {
     throw new Error(`Not enough capacity. Requested: ${requestedQuantity}, Available: ${remaining}`);
   }
 
+  // 3. Create all attendee records
   const qty = parseInt(quantity) || 1;
   const attendees = [];
 
-  // Create all attendees
   for (let i = 0; i < qty; i++) {
     const code = await generateUniqueCode();
     
-    try {
-      const attendee = await prisma.attendee.create({
-        data: {
-          name: i === 0 ? name : `${name} (Guest ${i})`,
-          email,
-          phone: phone || null,
-          code,
-          stripeSessionId: i === 0 ? session.id : null,
-          eventId,
-          checkedIn: false
-          // DON'T set createdAt/updatedAt - let Prisma handle them!
-        },
-        include: {
-          event: {
-            select: {
-              id: true,
-              name: true,
-              eventDate: true,
-              eventTime: true,
-              location: true
-            }
+    const attendee = await prisma.attendee.create({
+      data: {
+        // Name first ticket holder normally, subsequent tickets as guests
+        name: i === 0 ? name : `${name} (Guest ${i})`,
+        email,
+        phone: phone || null,
+        code,
+        // Only link the Stripe session ID to the primary ticket holder
+        stripeSessionId: i === 0 ? session.id : null, 
+        eventId,
+        checkedIn: false
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            eventDate: true,
+            eventTime: true,
+            location: true
           }
         }
-      });
-      
-      attendees.push(attendee);
-      
-      logger.info(`Created attendee ${i + 1}/${qty}`, {
-        code: attendee.code,
-        name: attendee.name,
-        hasSessionId: !!attendee.stripeSessionId
-      });
-      
-    } catch (error) {
-      logger.error(`Failed to create attendee ${i + 1}/${qty}`, {
-        error: error.message,
-        code: error.code,
-        name: i === 0 ? name : `${name} (Guest ${i})`
-      });
-      
-      // If we fail partway through, log what we created
-      if (attendees.length > 0) {
-        logger.error('Partial creation - created attendees:', {
-          count: attendees.length,
-          codes: attendees.map(a => a.code)
-        });
       }
-      
-      throw error;
-    }
+    });
+    
+    attendees.push(attendee);
+    
+    logger.info(`Created attendee ${i + 1}/${qty}`, {
+      code: attendee.code,
+      name: attendee.name,
+      hasSessionId: !!attendee.stripeSessionId
+    });
   }
 
   logger.info('All attendees created successfully', {
@@ -160,6 +149,7 @@ export async function upsertAttendeeFromSession(session) {
   return attendees;
 }
 
+/** Lists attendees, optionally filtered by search query or event ID. */
 export async function listAttendees({ q, eventId } = {}) {
   const where = {};
 
@@ -169,6 +159,7 @@ export async function listAttendees({ q, eventId } = {}) {
 
   if (q && q.trim()) {
     const search = q.trim().toLowerCase();
+    // Allow search by name, email, or code (case insensitive mode)
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },
       { email: { contains: search, mode: "insensitive" } },
@@ -191,6 +182,7 @@ export async function listAttendees({ q, eventId } = {}) {
   });
 }
 
+/** Toggles the checkedIn status for a given attendee code. */
 export async function toggleCheckInByCode(code) {
   const attendee = await prisma.attendee.findUnique({
     where: { code },
@@ -231,9 +223,14 @@ export async function toggleCheckInByCode(code) {
   return updated;
 }
 
+/** Provides overall summary statistics for all events/attendees (global view). */
 export async function summary() {
-  const capacity = parseInt(process.env.CAPACITY || "100");
+  // Fetch overall capacity from environment variable (if defined)
+  const capacity = parseInt(process.env.CAPACITY || "100"); 
   const totalAttendees = await prisma.attendee.count();
+  
+  // Note: Only attendees linked to a stripeSessionId are considered "paid" 
+  // (Assuming non-null stripeSessionId implies payment success)
   const paidAttendees = await prisma.attendee.count({
     where: { stripeSessionId: { not: null } }
   });
@@ -246,6 +243,7 @@ export async function summary() {
   };
 }
 
+/** Retrieves an attendee record by their Stripe session ID. */
 export async function getAttendeeBySessionId(sessionId) {
   return await prisma.attendee.findFirst({
     where: { stripeSessionId: sessionId },

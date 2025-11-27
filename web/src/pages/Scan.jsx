@@ -2,9 +2,17 @@
 import { useNavigate } from 'react-router-dom';
 import './Scan.css';
 
+// --- Constants ---
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 export default function Scan() {
+  // --- React Hooks & Refs ---
+  const navigate = useNavigate();
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const scanIntervalRef = useRef(null);
+
+  // --- State Management ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState(null);
   const [scanning, setScanning] = useState(false);
@@ -13,164 +21,10 @@ export default function Scan() {
   const [attendee, setAttendee] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
-  const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const scanIntervalRef = useRef(null);
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    const savedToken = localStorage.getItem('adminToken');
-    if (savedToken) {
-      setToken(savedToken);
-      setIsAuthenticated(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (scanning) {
-      startCamera();
-    } else {
-      stopCamera();
-    }
-
-    return () => stopCamera();
-  }, [scanning]);
-
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-        
-        // Start scanning for QR codes
-        scanIntervalRef.current = setInterval(scanQRCode, 500);
-      }
-    } catch (err) {
-      showMessage('error', 'Failed to access camera: ' + err.message);
-      setScanning(false);
-    }
-  }
-
-  function stopCamera() {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-    }
-  }
-
-  async function scanQRCode() {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      
-      try {
-        // Use jsQR library to decode
-        const code = window.jsQR(imageData.data, imageData.width, imageData.height);
-        
-        if (code && code.data) {
-          const scannedCode = code.data.trim();
-          
-          // Only process if it's a new code
-          if (scannedCode !== lastScannedCode && scannedCode.startsWith('SS-')) {
-            setLastScannedCode(scannedCode);
-            await handleCheckIn(scannedCode);
-          }
-        }
-      } catch (err) {
-        console.error('QR scanning error:', err);
-      }
-    }
-  }
-
-  async function handleCheckIn(code) {
-    if (!token) {
-      showMessage('error', 'Not authenticated');
-      return;
-    }
-
-    setLoading(true);
-    playSound('scan');
-
-    try {
-      const response = await fetch(`${API_URL}/api/auth/attendees/${code}/checkin`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-const data = await response.json();
-
-if (!response.ok) {
-  throw new Error(data.message || 'Check-in failed');
-}
-
-// Extract attendee from response
-const attendeeData = data.attendee || data;  // ✅ CORRECT - handles both structures
-setAttendee(attendeeData);
-
-if (attendeeData.checkedIn) {
-  showMessage('success', `✅ ${attendeeData.name} checked in successfully!`);
-  playSound('success');
-} else {
-  showMessage('warning', `⚠️ ${attendeeData.name} checked out`);
-  playSound('warning');
-}
-
-      // Clear after 5 seconds
-      setTimeout(() => {
-        setAttendee(null);
-        setLastScannedCode(null);
-      }, 5000);
-
-    } catch (err) {
-      showMessage('error', err.message);
-      playSound('error');
-      setAttendee(null);
-      
-      // Allow retry after 2 seconds
-      setTimeout(() => {
-        setLastScannedCode(null);
-      }, 2000);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleManualCheckIn(e) {
-    e.preventDefault();
-    if (manualCode.trim()) {
-      await handleCheckIn(manualCode.trim().toUpperCase());
-      setManualCode('');
-    }
-  }
-
-  function showMessage(type, text) {
-    setMessage({ type, text });
-    setTimeout(() => setMessage(null), 5000);
-  }
-
+  // --- Utility Functions (Audio Feedback) ---
   function playSound(type) {
-    // Create audio context for sound feedback
+    // Uses AudioContext for low-latency sound feedback
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -203,9 +57,171 @@ if (attendeeData.checkedIn) {
         oscillator.start();
         oscillator.stop(audioContext.currentTime + 0.05);
         break;
+      default:
+        break;
     }
   }
 
+  /** Sets a temporary message alert. */
+  function showMessage(type, text) {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 5000);
+  }
+
+  // --- Camera/Scanning Logic ---
+
+  /** Attempts to start the device camera and QR scanning interval. */
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+        
+        // Start scanning for QR codes every 500ms
+        scanIntervalRef.current = setInterval(scanQRCode, 500);
+      }
+    } catch (err) {
+      showMessage('error', 'Failed to access camera: ' + err.message);
+      setScanning(false);
+    }
+  }
+
+  /** Stops the camera stream and clears the scanning interval. */
+  function stopCamera() {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+    }
+  }
+
+  /** Captures frame from video and attempts to decode QR code using jsQR. */
+  async function scanQRCode() {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      
+      try {
+        // Assuming window.jsQR is loaded via the script tag in the return block
+        const code = window.jsQR(imageData.data, imageData.width, imageData.height);
+        
+        if (code && code.data) {
+          const scannedCode = code.data.trim();
+          
+          // Only process if it's a new, valid code format
+          if (scannedCode !== lastScannedCode && scannedCode.startsWith('SS-')) {
+            setLastScannedCode(scannedCode);
+            await handleCheckIn(scannedCode);
+          }
+        }
+      } catch (err) {
+        console.error('QR scanning error:', err);
+      }
+    }
+  }
+
+  // --- API Handlers ---
+  
+  /** Toggles attendee check-in status by booking code. */
+  async function handleCheckIn(code) {
+    if (!token) {
+      showMessage('error', 'Not authenticated');
+      return;
+    }
+
+    setLoading(true);
+    playSound('scan');
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/attendees/${code}/checkin`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Check-in failed');
+      }
+
+      // Extract attendee from response (handles both structures)
+      const attendeeData = data.attendee || data;  
+      setAttendee(attendeeData);
+
+      if (attendeeData.checkedIn) {
+        showMessage('success', `✅ ${attendeeData.name} checked in successfully!`);
+        playSound('success');
+      } else {
+        showMessage('warning', `⚠️ ${attendeeData.name} checked out`);
+        playSound('warning');
+      }
+
+      // Clear attendee card after 5 seconds
+      setTimeout(() => {
+        setAttendee(null);
+        setLastScannedCode(null);
+      }, 5000);
+
+    } catch (err) {
+      showMessage('error', err.message);
+      playSound('error');
+      setAttendee(null);
+      
+      // Allow retry after 2 seconds (to scan the same code again)
+      setTimeout(() => {
+        setLastScannedCode(null);
+      }, 2000);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /** Handles check-in via manual code entry. */
+  async function handleManualCheckIn(e) {
+    e.preventDefault();
+    if (manualCode.trim()) {
+      await handleCheckIn(manualCode.trim().toUpperCase());
+      setManualCode('');
+    }
+  }
+
+  // --- Effects ---
+  
+  // Controls camera lifecycle based on 'scanning' state
+  useEffect(() => {
+    if (scanning) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+
+    // Cleanup function runs on unmount or dependency change
+    return () => stopCamera();
+  }, [scanning]);
+
+  // --- Render ---
+
+  // Render Login Prompt if not authenticated
   if (!isAuthenticated) {
     return (
       <div className="scan-container">
@@ -220,6 +236,7 @@ if (attendeeData.checkedIn) {
     );
   }
 
+  // Render Scanner Dashboard
   return (
     <div className="scan-container">
       <div className="scan-header">
@@ -236,6 +253,7 @@ if (attendeeData.checkedIn) {
       )}
 
       <div className="scan-content">
+        {/* Left Column: Scanner and Manual Entry */}
         <div className="scanner-section">
           <div className="scanner-controls">
             <button
@@ -274,6 +292,7 @@ if (attendeeData.checkedIn) {
           </div>
         </div>
 
+        {/* Right Column: Attendee Card Display */}
         {attendee && (
           <div className={`attendee-card ${attendee.checkedIn ? 'checked-in' : 'checked-out'}`}>
             <div className="attendee-status">
@@ -314,7 +333,7 @@ if (attendeeData.checkedIn) {
         )}
       </div>
 
-      {/* Load jsQR library */}
+      {/* Script for QR code reading library (Must remain in the JSX output) */}
       <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     </div>
   );

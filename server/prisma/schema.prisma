@@ -1,25 +1,33 @@
+// server/prisma/schema.prisma
+
+// 1. Prisma Client Generator
 generator client {
   provider = "prisma-client-js"
 }
 
+// 2. Database Datasource (PostgreSQL)
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// --- 3. Models ---
+
+// Admin: Used for dashboard authentication
 model Admin {
   id               String    @id @default(cuid())
   email            String    @unique
-  password         String
+  password         String    // Hashed with bcrypt
   name             String
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
-  resetToken       String?
-  resetTokenExpiry DateTime?
+  resetToken       String?   // For password reset flow
+  resetTokenExpiry DateTime? // Token expiration timestamp
 
   @@map("admins")
 }
 
+// Event: Defines event details and ticket parameters
 model Event {
   id            String     @id @default(cuid())
   name          String
@@ -27,30 +35,32 @@ model Event {
   location      String
   eventDate     DateTime
   eventTime     String
-  price         Float
-  capacity      Int
-  stripePriceId String?
-  isActive      Boolean    @default(true)
+  price         Float      // Price per ticket
+  capacity      Int        // Max number of attendees
+  stripePriceId String?    // Stripe Price ID for payment processing
+  isActive      Boolean    @default(true) // Soft delete / active status
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
-  attendees     Attendee[]
+  attendees     Attendee[] // Relation to attendees model
 
   @@map("events")
 }
 
+// Attendee: Defines each purchased ticket/attendee record
 model Attendee {
   id              String   @id @default(cuid())
   name            String
   email           String
   phone           String?
-  code            String   @unique
-  stripeSessionId String   
-  checkedIn       Boolean  @default(false)
+  code            String   @unique // Unique booking/QR code (e.g., SS-ABC123)
+  stripeSessionId String   // Unique identifier for the Stripe Checkout Session
+  checkedIn       Boolean  @default(false) // Check-in status (used by scanner)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  eventId         String
+  eventId         String   // Foreign key linking to the event
   event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  // Indexes for efficient querying
   @@index([eventId])
   @@index([email])
   @@index([stripeSessionId])

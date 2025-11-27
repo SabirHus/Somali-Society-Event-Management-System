@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import './Admin.css';
 
+// --- Constants ---
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 // Define client-side session expiry (2 hours)
 const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; 
@@ -9,7 +10,8 @@ const SESSION_TIMEOUT = 2 * 60 * 60 * 1000;
 export default function Admin() {
   const navigate = useNavigate();
   
-  // Authentication State
+  // --- State Management ---
+  // Core Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState(null);
   
@@ -22,12 +24,12 @@ export default function Admin() {
   const [attendees, setAttendees] = useState([]);
   const [summary, setSummary] = useState(null);
   
-  // UI State
+  // UI/Form State
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Edit Event State
+  // Edit Modal State
   const [editingEvent, setEditingEvent] = useState(null);
   const [editFormData, setEditFormData] = useState({
     name: '',
@@ -39,18 +41,18 @@ export default function Admin() {
     capacity: ''
   });
 
-// Sorting State - ADD THIS WITH YOUR OTHER STATE
-const [sortConfig, setSortConfig] = useState({
-  key: null,
-  direction: 'asc'
-});
+  // Sorting States
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
 
-const [attendeeSortConfig, setAttendeeSortConfig] = useState({
-  key: null,
-  direction: 'asc'
-});
+  const [attendeeSortConfig, setAttendeeSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
 
-  // Login Form State
+  // Login Form State (Reset on login failure/logout)
   const [loginForm, setLoginForm] = useState({
     email: '',
     password: ''
@@ -68,16 +70,18 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     stripePriceId: ''
   });
 
-  // Check authentication on mount
+  // --- Effects ---
+
+  // Check authentication status and session expiration on mount
   useEffect(() => {
     const savedToken = localStorage.getItem('adminToken');
     const authTimestamp = localStorage.getItem('authTimestamp');
 
     if (savedToken) {
       if (authTimestamp && Date.now() - parseInt(authTimestamp) > SESSION_TIMEOUT) {
-        // Session expired client-side
+        // Session expired client-side: force logout
         console.warn("Client-side session expired. Logging out.");
-        handleLogout(true); // Force logout without confirmation
+        handleLogout(true);
         return;
       }
       
@@ -88,10 +92,59 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     }
   }, []);
 
-  // ============================================
-  // AUTHENTICATION FUNCTIONS
-  // ============================================
+  // --- Utility Functions ---
 
+  /** Converts price to GB currency string. */
+  function formatPrice(price) {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP'
+    }).format(price);
+  }
+
+  /** Formats date string to short locale format. */
+  function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  /** Handles sort configuration changes for event table. */
+  function handleSort(key) {
+    let direction = 'asc';
+    
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    
+    setSortConfig({ key, direction });
+  }
+
+  /** Handles sort configuration changes for attendee table. */
+  function handleAttendeeSort(key) {
+    let direction = 'asc';
+    
+    if (attendeeSortConfig.key === key && attendeeSortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    
+    setAttendeeSortConfig({ key, direction });
+  }
+
+  /** Returns the appropriate sort arrow symbol. */
+  function getSortArrow(columnKey, config) {
+    if (!config || config.key !== columnKey) {
+      return '⇅';
+    }
+    return config.direction === 'asc' ? '↑' : '↓';
+  }
+
+  // --- Authentication Handlers ---
+
+  /** Handles admin login submission. */
   async function handleLogin(e) {
     e.preventDefault();
     setLoading(true);
@@ -110,7 +163,7 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
         throw new Error(data.message || 'Login failed');
       }
 
-      // ⭐ FIX 1: Store Token and Timestamp
+      // Store Token and Timestamp on success
       localStorage.setItem('adminToken', data.token);
       localStorage.setItem('authTimestamp', Date.now().toString());
       
@@ -120,7 +173,7 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
       fetchEvents(data.token);
     } catch (err) {
       setError(err.message);
-      // Reset both fields on login failure
+      // Reset fields on login failure for security
       setLoginForm({
         email: '',
         password: ''
@@ -130,18 +183,21 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     }
   }
 
+  /** Handles admin logout. */
   function handleLogout(isForced = false) {
+    // Confirmation prompt only for manual clicks
     if (!isForced && !window.confirm("Are you sure you want to log out of the Admin Dashboard?")) {
       return;
     }
-    // ⭐ FIX 1: Clear both token and timestamp
+    
+    // Clear localStorage and reset all application states
     localStorage.removeItem('adminToken');
     localStorage.removeItem('authTimestamp');
 
-    setLoginForm({
-        email: '',
-        password: ''
-      });
+    setLoginForm({ // Reset login form state
+      email: '',
+      password: ''
+    });
     
     setToken(null);
     setIsAuthenticated(false);
@@ -151,10 +207,9 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     setSelectedEvent(null);
   }
 
-  // ============================================
-  // EVENT FUNCTIONS
-  // ============================================
+  // --- Event Handlers ---
 
+  /** Fetches the list of all events with statistics. */
   async function fetchEvents(authToken = token) {
     setLoading(true);
     try {
@@ -174,6 +229,7 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     }
   }
 
+  /** Handles creation of a new event. */
   async function handleCreateEvent(e) {
     e.preventDefault();
     setLoading(true);
@@ -200,6 +256,7 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
       }
 
       alert('Event created successfully!');
+      // Reset form and return to event list
       setEventForm({
         name: '',
         description: '',
@@ -219,6 +276,7 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     }
   }
 
+  /** Sets up state for editing an event in the modal. */
   function handleEditEvent(event) {
     setEditingEvent(event);
     setEditFormData({
@@ -232,6 +290,7 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     });
   }
 
+  /** Handles input changes in the Edit Event modal form. */
   function handleEditFormChange(e) {
     const { name, value } = e.target;
     setEditFormData(prev => ({
@@ -240,6 +299,7 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     }));
   }
 
+  /** Submits updates from the Edit Event modal. */
   async function handleUpdateEvent(e) {
     e.preventDefault();
     
@@ -273,6 +333,7 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     }
   }
 
+  /** Handles event deletion with a warning for existing attendees. */
   async function handleDeleteEvent(eventId, eventName, attendeeCount) {
     let confirmMessage = `Are you sure you want to delete "${eventName}"?`;
     
@@ -307,6 +368,7 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     }
   }
 
+  /** Toggles the isActive status of an event. */
   async function toggleEventActive(eventId, currentStatus) {
     try {
       const response = await fetch(`${API_URL}/api/events/${eventId}`, {
@@ -326,106 +388,9 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     }
   }
 
-// ============================================
-// SORTING FUNCTIONS - ADD THIS SECTION
-// ============================================
+  // --- Attendee Handlers ---
 
-function handleSort(key) {
-  let direction = 'asc';
-  
-  if (sortConfig.key === key && sortConfig.direction === 'asc') {
-    direction = 'desc';
-  }
-  
-  setSortConfig({ key, direction });
-}
-
-function handleAttendeeSort(key) {
-  let direction = 'asc';
-  
-  if (attendeeSortConfig.key === key && attendeeSortConfig.direction === 'asc') {
-    direction = 'desc';
-  }
-  
-  setAttendeeSortConfig({ key, direction });
-}
-
-function getSortArrow(columnKey, config) {
-  if (!config || config.key !== columnKey) {
-    return '⇅';
-  }
-  return config.direction === 'asc' ? '↑' : '↓';
-}
-
-// Sort events
-const sortedEvents = [...events].sort((a, b) => {
-  if (!sortConfig.key) return 0;
-  
-  let aValue = a[sortConfig.key];
-  let bValue = b[sortConfig.key];
-  
-  // Handle different data types
-  if (sortConfig.key === 'eventDate') {
-    aValue = new Date(aValue);
-    bValue = new Date(bValue);
-  } else if (sortConfig.key === 'price' || sortConfig.key === 'capacity' || sortConfig.key === 'attendeeCount') {
-    aValue = parseFloat(aValue);
-    bValue = parseFloat(bValue);
-  } else if (sortConfig.key === 'isActive') {
-    aValue = a.isActive ? 1 : 0;
-    bValue = b.isActive ? 1 : 0;
-  } else if (typeof aValue === 'string') {
-    aValue = aValue.toLowerCase();
-    bValue = bValue.toLowerCase();
-  }
-  
-  if (aValue < bValue) {
-    return sortConfig.direction === 'asc' ? -1 : 1;
-  }
-  if (aValue > bValue) {
-    return sortConfig.direction === 'asc' ? 1 : -1;
-  }
-  return 0;
-});
-
-  const filteredAttendees = attendees.filter(a =>
-    a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.code.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-// Sort attendees
-const sortedAttendees = [...filteredAttendees].sort((a, b) => {
-  if (!attendeeSortConfig.key) return 0;
-  
-  let aValue = a[attendeeSortConfig.key];
-  let bValue = b[attendeeSortConfig.key];
-  
-  // Handle different data types
-  if (attendeeSortConfig.key === 'createdAt') {
-    aValue = new Date(aValue);
-    bValue = new Date(bValue);
-  } else if (attendeeSortConfig.key === 'checkedIn') {
-    aValue = a.checkedIn ? 1 : 0;
-    bValue = b.checkedIn ? 1 : 0;
-  } else if (typeof aValue === 'string') {
-    aValue = aValue.toLowerCase();
-    bValue = bValue.toLowerCase();
-  }
-  
-  if (aValue < bValue) {
-    return attendeeSortConfig.direction === 'asc' ? -1 : 1;
-  }
-  if (aValue > bValue) {
-    return attendeeSortConfig.direction === 'asc' ? 1 : -1;
-  }
-  return 0;
-});
-
-  // ============================================
-  // ATTENDEE FUNCTIONS
-  // ============================================
-
+  /** Fetches attendees and summary for a specific event. */
   async function fetchEventAttendees(eventId) {
     setLoading(true);
     try {
@@ -454,6 +419,7 @@ const sortedAttendees = [...filteredAttendees].sort((a, b) => {
     }
   }
 
+  /** Toggles the check-in status for an attendee via their code. */
   async function handleToggleCheckIn(code) {
     try {
       const response = await fetch(`${API_URL}/api/auth/attendees/${code}/checkin`, {
@@ -484,6 +450,7 @@ const sortedAttendees = [...filteredAttendees].sort((a, b) => {
     }
   }
 
+  /** Deletes a single attendee record. */
   async function handleDeleteAttendee(attendeeId, attendeeName) {
     if (!confirm(`Are you sure you want to delete ${attendeeName}? This cannot be undone.`)) {
       return;
@@ -513,30 +480,75 @@ const sortedAttendees = [...filteredAttendees].sort((a, b) => {
     }
   }
 
-  // ============================================
-  // UTILITY FUNCTIONS
-  // ============================================
+  // --- Computed / Derived Data ---
 
-  function formatPrice(price) {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP'
-    }).format(price);
-  }
+  // Sort events based on current sort configuration
+  const sortedEvents = [...events].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+    
+    let aValue = a[sortConfig.key];
+    let bValue = b[sortConfig.key];
+    
+    // Handle different data types for sorting keys
+    if (sortConfig.key === 'eventDate') {
+      aValue = new Date(aValue);
+      bValue = new Date(bValue);
+    } else if (['price', 'capacity', 'attendeeCount'].includes(sortConfig.key)) {
+      aValue = parseFloat(aValue);
+      bValue = parseFloat(bValue);
+    } else if (sortConfig.key === 'isActive') {
+      aValue = a.isActive ? 1 : 0;
+      bValue = b.isActive ? 1 : 0;
+    } else if (typeof aValue === 'string') {
+      aValue = aValue.toLowerCase();
+      bValue = bValue.toLowerCase();
+    }
+    
+    if (aValue < bValue) {
+      return sortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return sortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
 
-  function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  }
+  // Filter attendees based on search query
+  const filteredAttendees = attendees.filter(a =>
+    a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  // ============================================
-  // RENDER: LOGIN VIEW
-  // ============================================
+  // Sort filtered attendees based on current sort configuration
+  const sortedAttendees = [...filteredAttendees].sort((a, b) => {
+    if (!attendeeSortConfig.key) return 0;
+    
+    let aValue = a[attendeeSortConfig.key];
+    let bValue = b[attendeeSortConfig.key];
+    
+    // Handle different data types for sorting keys
+    if (attendeeSortConfig.key === 'createdAt') {
+      aValue = new Date(aValue);
+      bValue = new Date(bValue);
+    } else if (attendeeSortConfig.key === 'checkedIn') {
+      aValue = a.checkedIn ? 1 : 0;
+      bValue = b.checkedIn ? 1 : 0;
+    } else if (typeof aValue === 'string') {
+      aValue = aValue.toLowerCase();
+      bValue = bValue.toLowerCase();
+    }
+    
+    if (aValue < bValue) {
+      return attendeeSortConfig.direction === 'asc' ? -1 : 1;
+    }
+    if (aValue > bValue) {
+      return attendeeSortConfig.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
 
+  // --- Render Logic: Login View ---
   if (!isAuthenticated) {
     return (
       <div className="admin-container">
@@ -582,10 +594,7 @@ const sortedAttendees = [...filteredAttendees].sort((a, b) => {
     );
   }
 
-  // ============================================
-  // RENDER: MAIN ADMIN VIEW
-  // ============================================
-
+  // --- Render Logic: Main Dashboard View ---
   return (
     <div className="admin-container">
       {/* Header */}

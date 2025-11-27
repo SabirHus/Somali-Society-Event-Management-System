@@ -1,10 +1,16 @@
+// server/src/services/event.service.js - Business Logic for Events
+
 import { prisma } from '../models/prisma.js';
 import logger from '../utils/logger.js';
 import { NotFoundError, ValidationError } from '../middleware/error-handler.js';
 
+// --- Public Service Functions ---
+
+/** Creates a new event record. */
 export async function createEvent(eventData) {
   const { name, description, location, eventDate, eventTime, price, capacity, stripePriceId } = eventData;
 
+  // Basic validation
   if (!name || !location || !eventDate || !eventTime || price === undefined || !capacity) {
     throw new ValidationError('Missing required fields', [
       'name, location, eventDate, eventTime, price, and capacity are required'
@@ -41,11 +47,13 @@ export async function createEvent(eventData) {
   }
 }
 
+/** Lists events, supporting filtering by active status and inclusion of capacity stats. */
 export async function listEvents({ activeOnly = false, includeStats = false } = {}) {
   try {
     const where = activeOnly ? { isActive: true } : {};
 
     if (includeStats) {
+      // Fetch event counts for calculating remaining tickets
       const events = await prisma.event.findMany({
         where,
         include: {
@@ -58,6 +66,7 @@ export async function listEvents({ activeOnly = false, includeStats = false } = 
         }
       });
 
+      // Map raw data to include computed stats
       return events.map(event => ({
         ...event,
         attendeeCount: event._count.attendees,
@@ -65,6 +74,7 @@ export async function listEvents({ activeOnly = false, includeStats = false } = 
         isFull: event._count.attendees >= event.capacity
       }));
     } else {
+      // Simple list fetch
       return await prisma.event.findMany({
         where,
         orderBy: {
@@ -78,6 +88,7 @@ export async function listEvents({ activeOnly = false, includeStats = false } = 
   }
 }
 
+/** Retrieves a single event by ID, optionally including capacity stats. */
 export async function getEventById(eventId, includeStats = false) {
   try {
     const event = await prisma.event.findUnique({
@@ -94,6 +105,7 @@ export async function getEventById(eventId, includeStats = false) {
     }
 
     if (includeStats) {
+      // Include computed properties if stats requested
       return {
         ...event,
         attendeeCount: event._count.attendees,
@@ -113,6 +125,7 @@ export async function getEventById(eventId, includeStats = false) {
   }
 }
 
+/** Updates fields of an existing event. */
 export async function updateEvent(eventId, updates) {
   try {
     const existing = await prisma.event.findUnique({
@@ -123,16 +136,18 @@ export async function updateEvent(eventId, updates) {
       throw new NotFoundError('Event');
     }
 
+    // Build the data object with optional updates, converting types as needed
     const data = {};
     if (updates.name !== undefined) data.name = updates.name;
     if (updates.description !== undefined) data.description = updates.description;
     if (updates.location !== undefined) data.location = updates.location;
-    if (updates.eventDate !== undefined) data.eventDate = new Date(updates.eventDate);
+    // Convert date string to Date object
+    if (updates.eventDate !== undefined) data.eventDate = new Date(updates.eventDate); 
     if (updates.eventTime !== undefined) data.eventTime = updates.eventTime;
     if (updates.price !== undefined) data.price = parseFloat(updates.price);
     if (updates.capacity !== undefined) data.capacity = parseInt(updates.capacity);
     if (updates.stripePriceId !== undefined) data.stripePriceId = updates.stripePriceId;
-    if (updates.isActive !== undefined) data.isActive = updates.isActive;
+    if (updates.isActive !== undefined) data.isActive = updates.isActive; // Used for soft deletion/deactivation
 
     const event = await prisma.event.update({
       where: { id: eventId },
@@ -155,6 +170,10 @@ export async function updateEvent(eventId, updates) {
   }
 }
 
+/** * Deletes an event (soft delete by default, hard delete if specified).
+ * Note: Hard deletion of events with attendees is handled in auth.routes.js 
+ * for admin deletion requests. This soft deletion logic is available if needed.
+ */
 export async function deleteEvent(eventId, hardDelete = false) {
   try {
     const event = await prisma.event.findUnique({
@@ -201,6 +220,7 @@ export async function deleteEvent(eventId, hardDelete = false) {
   }
 }
 
+/** Retrieves calculated statistics for a single event (used by admin attendee view). */
 export async function getEventSummary(eventId) {
   try {
     const event = await prisma.event.findUnique({

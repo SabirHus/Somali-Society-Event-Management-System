@@ -1,8 +1,9 @@
-// server/src/middleware/rate-limit.js - NEW FILE
+// server/src/middleware/rate-limit.js - Rate Limiting Configuration
+
 import rateLimit from 'express-rate-limit';
 import logger from '../utils/logger.js';
 
-// General API rate limiter
+// --- General Rate Limiter ---
 export const rateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // 100 requests per window per IP
@@ -13,7 +14,7 @@ export const rateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    logger.warn('Rate limit exceeded', {
+    logger.warn('Rate limit exceeded (General)', {
       ip: req.ip,
       path: req.path,
       method: req.method
@@ -25,7 +26,7 @@ export const rateLimiter = rateLimit({
   }
 });
 
-// Login rate limiter (stricter)
+// --- Login Rate Limiter (Stricter) ---
 export const loginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 login attempts per window
@@ -33,7 +34,7 @@ export const loginRateLimiter = rateLimit({
     error: 'Too many login attempts from this IP, please try again after 15 minutes.',
     retryAfter: '15 minutes'
   },
-  skipSuccessfulRequests: true,
+  skipSuccessfulRequests: true, // Only count failed logins against the limit
   handler: (req, res) => {
     logger.warn('Login rate limit exceeded', {
       ip: req.ip,
@@ -46,7 +47,7 @@ export const loginRateLimiter = rateLimit({
   }
 });
 
-// Checkout rate limiter
+// --- Checkout Rate Limiter ---
 export const checkoutRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // 10 checkout sessions per hour
@@ -66,7 +67,7 @@ export const checkoutRateLimiter = rateLimit({
   }
 });
 
-// Admin actions rate limiter
+// --- Admin Actions Rate Limiter ---
 export const adminRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 50, // 50 admin requests per window
@@ -86,6 +87,7 @@ export const adminRateLimiter = rateLimit({
   }
 });
 
+// Export all limiters for routing files
 export default {
   rateLimiter,
   loginRateLimiter,

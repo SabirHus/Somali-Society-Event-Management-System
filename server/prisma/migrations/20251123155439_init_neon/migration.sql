@@ -1,4 +1,9 @@
--- CreateTable
+-- server/prisma/migrations/20251123155439_init_neon/migration.sql
+
+-- Initial database setup with Admin and Attendee tables.
+-- NOTE: Uses initial structure before Event entity was fully integrated.
+
+-- CreateTable: Admin (Initial)
 CREATE TABLE "Admin" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -9,7 +14,7 @@ CREATE TABLE "Admin" (
     CONSTRAINT "key" PRIMARY KEY ("id")
 );
 
--- CreateTable
+-- CreateTable: Attendee (Initial)
 CREATE TABLE "Attendee" (
     "id" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -25,11 +30,11 @@ CREATE TABLE "Attendee" (
     CONSTRAINT "Attendee_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
+-- CreateIndex: Unique index on Admin email
 CREATE UNIQUE INDEX "Admin_email_key" ON "Admin"("email");
 
--- CreateIndex
+-- CreateIndex: Unique index on Attendee code
 CREATE UNIQUE INDEX "Attendee_code_key" ON "Attendee"("code");
 
--- CreateIndex
+-- CreateIndex: Unique index on Stripe session ID (initial version)
 CREATE UNIQUE INDEX "Attendee_stripeSessionId_key" ON "Attendee"("stripeSessionId");

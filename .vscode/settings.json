@@ -1,9 +1,13 @@
 {
+  // Enforces code formatting on file save
   "editor.formatOnSave": true,
+  // Enforces Unix-style line endings (LF), standard for cross-platform Node/Vercel projects
   "files.eol": "\n",
+  // Specific formatter settings for JSON files
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   },
+  // Specific formatter settings for JSON with comments (JSONC)
   "[jsonc]": {
     "editor.defaultFormatter": "vscode.json-language-features"
   }

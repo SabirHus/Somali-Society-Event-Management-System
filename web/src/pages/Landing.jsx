@@ -2,18 +2,26 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Landing.css';
 
+// --- Constants ---
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 export default function Landing() {
+  // --- React Hooks ---
+  const navigate = useNavigate();
+  
+  // --- State Management ---
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
+  // --- Effects ---
   useEffect(() => {
     fetchEvents();
   }, []);
 
+  // --- Data Fetching & Handling ---
+
+  /** Fetches all active events with statistics from the public API. */
   async function fetchEvents() {
     try {
       const response = await fetch(`${API_URL}/api/events?activeOnly=true&includeStats=true`);
@@ -27,6 +35,9 @@ export default function Landing() {
     }
   }
 
+  // --- Utility Functions ---
+
+  /** Formats date string to long locale format. */
   function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', {
@@ -37,6 +48,7 @@ export default function Landing() {
     });
   }
 
+  /** Converts price to GB currency string. */
   function formatPrice(price) {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -44,6 +56,7 @@ export default function Landing() {
     }).format(price);
   }
 
+  // --- Render Logic: Loading/Error States ---
   if (loading) {
     return (
       <div className="landing">
@@ -64,6 +77,7 @@ export default function Landing() {
     );
   }
 
+  // --- Render Logic: Main View ---
   return (
     <div className="landing">
       <header className="landing-header">
@@ -71,8 +85,9 @@ export default function Landing() {
           <h1>Somali Society Salford</h1>
           <p>Discover and register for upcoming events</p>
         </div>
+        {/* Logo element (CSS handles positioning) */}
         <img 
-          src="/logo.png" // Placeholder URL for the logo image file
+          src="/logo.png" 
           alt="Somali Society Salford Logo"
           className="header-logo"
           // Fallback to a placeholder image if /logo.png fails to load

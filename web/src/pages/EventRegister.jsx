@@ -2,14 +2,17 @@ import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import './EventRegister.css';
 
+// --- Constants ---
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 export default function EventRegister() {
+  // --- React Hooks ---
   const { eventId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const cancelled = searchParams.get('cancelled');
 
+  // --- State Management ---
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -23,10 +26,16 @@ export default function EventRegister() {
     acceptTerms: false
   });
 
+  // --- Effects ---
+
+  // Fetches event details on component mount or eventId change
   useEffect(() => {
     fetchEvent();
   }, [eventId]);
 
+  // --- Data Fetching & Handling ---
+
+  /** Fetches specific event details and capacity statistics from the public API. */
   async function fetchEvent() {
     try {
       const response = await fetch(`${API_URL}/api/events/${eventId}?includeStats=true`);
@@ -50,6 +59,7 @@ export default function EventRegister() {
     }
   }
 
+  /** Handles changes to form input fields. */
   function handleChange(e) {
     setFormData({
       ...formData,
@@ -57,12 +67,14 @@ export default function EventRegister() {
     });
   }
 
+  /** Handles form submission for creating a Stripe checkout session. */
   async function handleSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
 
     try {
+      // API call to create Stripe session
       const response = await fetch(`${API_URL}/api/checkout/session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,6 +90,7 @@ export default function EventRegister() {
         throw new Error(data.message || 'Failed to create checkout session');
       }
 
+      // Redirect user to Stripe checkout URL
       window.location.href = data.url;
     } catch (err) {
       setError(err.message);
@@ -85,6 +98,9 @@ export default function EventRegister() {
     }
   }
 
+  // --- Utility Functions ---
+
+  /** Formats date string to long locale format. */
   function formatDate(dateString) {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-GB', {
@@ -95,6 +111,7 @@ export default function EventRegister() {
     });
   }
 
+  /** Converts price to GB currency string. */
   function formatPrice(price) {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -102,6 +119,8 @@ export default function EventRegister() {
     }).format(price);
   }
 
+  // --- Computed Data ---
+  
   if (loading) {
     return (
       <div className="event-register">
@@ -129,8 +148,10 @@ export default function EventRegister() {
   }
 
   const totalPrice = event.price * formData.quantity;
+  // Limit max quantity to 10 or remaining tickets, whichever is lower
   const maxQuantity = Math.min(10, event.remaining);
 
+  // --- Render ---
   return (
     <div className="event-register">
       <div className="container">
@@ -153,6 +174,7 @@ export default function EventRegister() {
             )}
 
             <div className="info-grid">
+              {/* Date */}
               <div className="info-item">
                 <span className="info-icon">📅</span>
                 <div>
@@ -161,6 +183,7 @@ export default function EventRegister() {
                 </div>
               </div>
 
+              {/* Time */}
               <div className="info-item">
                 <span className="info-icon">🕐</span>
                 <div>
@@ -169,6 +192,7 @@ export default function EventRegister() {
                 </div>
               </div>
 
+              {/* Location */}
               <div className="info-item">
                 <span className="info-icon">📍</span>
                 <div>
@@ -177,6 +201,7 @@ export default function EventRegister() {
                 </div>
               </div>
 
+              {/* Price */}
               <div className="info-item">
                 <span className="info-icon">💷</span>
                 <div>
@@ -186,6 +211,7 @@ export default function EventRegister() {
               </div>
             </div>
 
+            {/* Capacity Bar */}
             <div className="capacity-info">
               <div className="capacity-bar">
                 <div 
@@ -199,6 +225,7 @@ export default function EventRegister() {
             </div>
           </div>
 
+          {/* Registration Form */}
           <div className="register-form-container">
             <h2>Register for Event</h2>
 
@@ -216,6 +243,7 @@ export default function EventRegister() {
                   <div className="alert alert-error">{error}</div>
                 )}
 
+                {/* Name Input */}
                 <div className="form-group">
                   <label htmlFor="name">Full Name *</label>
                   <input
@@ -230,6 +258,7 @@ export default function EventRegister() {
                   />
                 </div>
 
+                {/* Email Input */}
                 <div className="form-group">
                   <label htmlFor="email">Email *</label>
                   <input
@@ -244,6 +273,7 @@ export default function EventRegister() {
                   />
                 </div>
 
+                {/* Phone Input */}
                 <div className="form-group">
                   <label htmlFor="phone">Phone Number</label>
                   <input
@@ -257,6 +287,7 @@ export default function EventRegister() {
                   />
                 </div>
 
+                {/* Quantity Select */}
                 <div className="form-group">
                   <label htmlFor="quantity">Number of Tickets *</label>
                   <select
@@ -275,30 +306,32 @@ export default function EventRegister() {
                   </select>
                 </div>
 
+                {/* Terms Checkbox */}
                 <div className="form-group form-group-checkbox">
-  <label className="checkbox-label">
-    <input
-      type="checkbox"
-      name="acceptTerms"
-      checked={formData.acceptTerms}
-      onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-      required
-      disabled={submitting}
-    />
-    <span>
-      I accept the{' '}
-      <a href="/terms" target="_blank" rel="noopener noreferrer">
-        Terms & Conditions
-      </a>
-      {' '}and{' '}
-      <a href="/privacy" target="_blank" rel="noopener noreferrer">
-        Privacy Policy
-      </a>
-      {' '}*
-    </span>
-  </label>
-</div>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      name="acceptTerms"
+                      checked={formData.acceptTerms}
+                      onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
+                      required
+                      disabled={submitting}
+                    />
+                    <span>
+                      I accept the{' '}
+                      <a href="/terms" target="_blank" rel="noopener noreferrer">
+                        Terms & Conditions
+                      </a>
+                      {' '}and{' '}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer">
+                        Privacy Policy
+                      </a>
+                      {' '}*
+                    </span>
+                  </label>
+                </div>
 
+                {/* Price Summary */}
                 <div className="price-summary">
                   <div className="price-row">
                     <span>Ticket Price:</span>
@@ -314,13 +347,14 @@ export default function EventRegister() {
                   </div>
                 </div>
 
-<button
-  type="submit"
-  className="btn btn-primary btn-large"
-  disabled={submitting || !formData.acceptTerms}
->
-  {submitting ? 'Processing...' : `Pay ${formatPrice(totalPrice)}`}
-</button>
+                {/* Payment Button */}
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-large"
+                  disabled={submitting || !formData.acceptTerms}
+                >
+                  {submitting ? 'Processing...' : `Pay ${formatPrice(totalPrice)}`}
+                </button>
 
                 <p className="payment-note">
                   💳 Secure payment powered by Stripe

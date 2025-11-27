@@ -1,7 +1,8 @@
 {
+  // A list of extensions recommended for users working on this workspace.
   "recommendations": [
-    "Prisma.prisma",
-    "esbenp.prettier-vscode",
-    "dbaeumer.vscode-eslint"
+    "Prisma.prisma", // Essential for Prisma schema highlighting and formatting
+    "esbenp.prettier-vscode", // Code formatting (used by settings.json)
+    "dbaeumer.vscode-eslint" // Code linting based on project configuration
   ]
 }

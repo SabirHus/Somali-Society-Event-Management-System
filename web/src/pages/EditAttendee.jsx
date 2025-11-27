@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Admin.css';
 
+// --- Constants ---
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 export default function EditAttendee() {
+  // --- React Hooks ---
   const { attendeeId } = useParams();
   const navigate = useNavigate();
+  
+  // --- State Management ---
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
@@ -17,10 +21,16 @@ export default function EditAttendee() {
   });
   const [eventName, setEventName] = useState('');
 
+  // --- Effects ---
+
+  // Fetches attendee details on component mount or ID change
   useEffect(() => {
     fetchAttendeeDetails();
   }, [attendeeId]);
 
+  // --- Data Fetching & Handling ---
+
+  /** Fetches specific attendee details using the stored admin token. */
   async function fetchAttendeeDetails() {
     const token = localStorage.getItem('adminToken');
     
@@ -40,6 +50,7 @@ export default function EditAttendee() {
       if (!response.ok) throw new Error('Failed to fetch attendee');
       
       const attendee = await response.json();
+      // Initialize form data with fetched values
       setFormData({
         name: attendee.name,
         email: attendee.email,
@@ -54,6 +65,7 @@ export default function EditAttendee() {
     }
   }
 
+  /** Handles changes to form input fields (including checkbox). */
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -62,6 +74,7 @@ export default function EditAttendee() {
     }));
   }
 
+  /** Handles form submission for updating the attendee. */
   async function handleSubmit(e) {
     e.preventDefault();
     const token = localStorage.getItem('adminToken');
@@ -71,9 +84,10 @@ export default function EditAttendee() {
       return;
     }
 
+    // Mandatory confirmation check before sending the request
     if (!window.confirm(`Confirm save changes for attendee: "${formData.name}"?`)) {
-    return; // Stop execution if the user cancels
-  }
+      return; 
+    }
 
     setLoading(true);
     setError(null);
@@ -95,7 +109,7 @@ export default function EditAttendee() {
       }
 
       alert('Attendee updated successfully!');
-      navigate('/admin');
+      navigate('/admin'); // Redirect back to dashboard on success
     } catch (err) {
       setError(err.message);
     } finally {
@@ -103,19 +117,22 @@ export default function EditAttendee() {
     }
   }
 
+  /** Handles the Cancel button click with mandatory confirmation. */
   const handleCancel = () => {
-    if (window.confirm('Are you sure you want to cancel editing? Any unsaved changes will be lost.')) {
-      navigate('/admin');
-    }
-  };
+    // Show confirmation regardless of whether changes were made
+    if (window.confirm('Are you sure you want to cancel editing? Any unsaved changes will be lost.')) {
+      navigate('/admin');
+    }
+  };
 
+  // --- Render ---
   return (
     <div className="admin-container">
       <div className="admin-header">
         <div className="header-content">
           <div className="header-left">
             <h1>Edit Attendee</h1>
-            <button onClick={() => navigate('/admin')} className="back-btn-inline">
+            <button onClick={handleCancel} className="back-btn-inline">
               ← Back to Dashboard
             </button>
           </div>

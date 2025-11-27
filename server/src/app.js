@@ -1,3 +1,5 @@
+// server/src/app.js - Main Express Application Entry Point
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,27 +7,34 @@ import Stripe from 'stripe';
 import { prisma } from './models/prisma.js';
 import { sendOrderEmail } from './services/email.service.js';
 import { upsertAttendeeFromSession } from './services/attendee.service.js';
+
+// --- Route Imports ---
 import publicRoutes from './routes/public.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import eventRoutes from './routes/event.routes.js';
 import passwordResetRoutes from './routes/password-reset.routes.js';
+
+// --- Middleware Imports ---
 import { rateLimiter } from './middleware/rate-limit.js';
 import { errorHandler } from './middleware/error-handler.js';
 import logger from './utils/logger.js';
 
+// --- Initialization ---
 const app = express();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const PORT = process.env.PORT || 4000;
 const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5173';
 
-// Webhook BEFORE express.json()
+// --- Webhook Handler (MUST run before express.json middleware) ---
+
 app.post('/webhooks/stripe', 
-  express.raw({ type: 'application/json' }), 
+  express.raw({ type: 'application/json' }), // Use raw body parser for signature verification
   async (req, res) => {
     const sig = req.headers['stripe-signature'];
     let event;
 
     try {
+      // Verify webhook signature for authenticity
       event = stripe.webhooks.constructEvent(
         req.body,
         sig,
@@ -47,7 +56,7 @@ app.post('/webhooks/stripe',
           metadata: session.metadata
         });
         
-        const { name, email, phone, quantity, eventId } = session.metadata;
+        const { name, email, eventId } = session.metadata;
         
         if (!email || !name || !eventId) {
           logger.error('Missing required metadata in webhook', {
@@ -61,6 +70,7 @@ app.post('/webhooks/stripe',
           });
         }
         
+        // Business Logic: Create attendee records
         const attendees = await upsertAttendeeFromSession(session);
         
         if (attendees.length === 0) {
@@ -76,6 +86,7 @@ app.post('/webhooks/stripe',
           attendeeIds: attendees.map(a => a.id)
         });
 
+        // Email Confirmation: Get primary attendee for email details
         const primaryAttendee = attendees[0];
         await sendOrderEmail({
           email: primaryAttendee.email,
@@ -108,15 +119,20 @@ app.post('/webhooks/stripe',
     res.json({ received: true });
 });
 
-// Middleware
+// --- General Middleware ---
+
+// Body Parsers (for application/json and form data)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Security Middleware
 app.use(helmet({
-  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+  // CSP disabled in dev to allow hot-reloading scripts
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false, 
   crossOriginEmbedderPolicy: false
 }));
 
+// CORS Configuration (Essential for allowing frontend to talk to backend)
 app.use(cors({ 
   origin: WEB_ORIGIN,
   credentials: true,
@@ -124,14 +140,16 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Global Rate Limiter
 app.use('/api', rateLimiter);
 
-// Routes
+// --- Route Mounting ---
 app.use('/api', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/password-reset', passwordResetRoutes);
 
+// --- Health Check Endpoint ---
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -141,6 +159,9 @@ app.get('/health', (req, res) => {
   });
 });
 
+// --- Final Error Handling (MUST be last) ---
+
+// 404 Not Found Handler
 app.use((req, res) => {
   res.status(404).json({ 
     error: 'Not Found',
@@ -148,9 +169,10 @@ app.use((req, res) => {
   });
 });
 
+// Centralized Error Handler
 app.use(errorHandler);
 
-// Server start
+// --- Server Start ---
 const server = app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT}`);
   logger.info(`Webhook endpoint: http://localhost:${PORT}/webhooks/stripe`);
@@ -159,6 +181,7 @@ const server = app.listen(PORT, () => {
   logger.info(`Stripe mode: ${process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'TEST' : 'LIVE'}`);
 });
 
+// Graceful shutdown on termination signals
 process.on('SIGTERM', () => {
   logger.info('SIGTERM signal received: closing HTTP server');
   server.close(() => {

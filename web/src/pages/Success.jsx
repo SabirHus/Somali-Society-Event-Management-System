@@ -1,18 +1,26 @@
 ﻿import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
+// --- Constants ---
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 export default function Success() {
+  // --- React Hooks ---
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  
+  // --- State Management ---
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Get query parameters
   const sessionId = searchParams.get('session_id');
   const eventId = searchParams.get('eventId');
 
+  // --- Effects ---
+  
+  // Fetches session details on mount to verify payment
   useEffect(() => {
     if (sessionId) {
       fetchSession();
@@ -22,10 +30,13 @@ export default function Success() {
     }
   }, [sessionId]);
 
+  // --- Data Fetching & Handling ---
+  
+  /** Calls API to retrieve and verify Stripe session details. */
   async function fetchSession() {
     try {
       const response = await fetch(`${API_URL}/api/checkout/success?session_id=${sessionId}`);
-      if (!response.ok) throw new Error('Failed to fetch session');
+      if (!response.ok) throw new Error('Failed to fetch session details');
       const data = await response.json();
       setSession(data.session);
     } catch (err) {
@@ -35,6 +46,7 @@ export default function Success() {
     }
   }
 
+  // --- Render Logic: Loading/Error States ---
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 20px' }}>
@@ -53,6 +65,7 @@ export default function Success() {
     );
   }
 
+  // --- Render Logic: Success View ---
   return (
     <div style={{
       minHeight: '100vh',
@@ -90,6 +103,7 @@ export default function Success() {
         )}
 
         <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+          {/* Back to Events Button */}
           <button
             onClick={() => navigate('/')}
             style={{
@@ -106,6 +120,7 @@ export default function Success() {
             Back to Events
           </button>
           
+          {/* Buy More Tickets Button */}
           {eventId && (
             <button
               onClick={() => navigate(`/event/${eventId}`)}

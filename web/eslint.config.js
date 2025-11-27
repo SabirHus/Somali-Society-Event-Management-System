@@ -5,9 +5,11 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
+  // Ignore build/output directory
   globalIgnores(['dist']),
   {
     files: ['**/*.{js,jsx}'],
+    // Standard recommended rulesets
     extends: [
       js.configs.recommended,
       reactHooks.configs.flat.recommended,
@@ -23,7 +25,8 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Allows uppercase identifiers that are typically used for constants
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }], 
     },
   },
 ])

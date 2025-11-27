@@ -1,4 +1,6 @@
--- Add Events System Migration
+-- server/prisma/migrations/20251125_add_events/migration.sql
+
+-- Add Events System Migration and update existing tables (Admin, Attendee)
 
 -- ============================================
 -- 1. CREATE EVENTS TABLE
@@ -21,7 +23,7 @@ CREATE TABLE IF NOT EXISTS "events" (
 );
 
 -- ============================================
--- 2. RENAME TABLES (if needed for consistency)
+-- 2. RENAME TABLES (Standardizing to plural snake_case)
 -- ============================================
 -- Rename Admin to admins
 DO $$ 
@@ -56,29 +58,29 @@ BEGIN
 END $$;
 
 -- ============================================
--- 3. UPDATE ADMINS TABLE (password reset)
+-- 3. UPDATE ADMINS TABLE (Add Password Reset Fields)
 -- ============================================
 ALTER TABLE "admins" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE "admins" ADD COLUMN IF NOT EXISTS "resetToken" TEXT;
 ALTER TABLE "admins" ADD COLUMN IF NOT EXISTS "resetTokenExpiry" TIMESTAMP(3);
 
 -- ============================================
--- 4. UPDATE ATTENDEES TABLE (add eventId)
+-- 4. UPDATE ATTENDEES TABLE (Add eventId and cleanup old columns)
 -- ============================================
--- Add eventId column
+-- Add foreign key column
 ALTER TABLE "attendees" ADD COLUMN IF NOT EXISTS "eventId" TEXT;
 
--- Add updatedAt column
+-- Add standard updatedAt column
 ALTER TABLE "attendees" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
--- Remove old columns that are no longer in schema
+-- Remove old columns that are no longer needed after event integration
 ALTER TABLE "attendees" DROP COLUMN IF EXISTS "quantity";
 ALTER TABLE "attendees" DROP COLUMN IF EXISTS "status";
 
 -- ============================================
 -- 5. ADD FOREIGN KEY CONSTRAINT
 -- ============================================
--- Add foreign key from attendees to events
+-- Link attendees to events with cascade delete
 DO $$ 
 BEGIN
     IF NOT EXISTS (
@@ -104,7 +106,7 @@ CREATE INDEX IF NOT EXISTS "attendees_eventId_idx" ON "attendees"("eventId");
 CREATE INDEX IF NOT EXISTS "attendees_email_idx" ON "attendees"("email");
 
 -- ============================================
--- 7. UPDATE EXISTING UNIQUE CONSTRAINTS (if needed)
+-- 7. UPDATE EXISTING UNIQUE CONSTRAINTS (Renaming)
 -- ============================================
 -- Rename unique constraint on code
 DO $$ 

@@ -1,3 +1,5 @@
+// server/src/controllers/event.controller.js - Handlers for Event Management
+
 import {
   createEvent,
   listEvents,
@@ -7,6 +9,7 @@ import {
   getEventSummary
 } from '../services/event.service.js';
 
+/** Handles POST request to create a new event. */
 export async function createEventHandler(req, res, next) {
   try {
     const event = await createEvent(req.body);
@@ -16,8 +19,10 @@ export async function createEventHandler(req, res, next) {
   }
 }
 
+/** Handles GET request to list all events (public/admin view). */
 export async function listEventsHandler(req, res, next) {
   try {
+    // Parse query parameters for filtering and stats inclusion
     const activeOnly = req.query.activeOnly === 'true';
     const includeStats = req.query.includeStats === 'true';
     
@@ -28,6 +33,7 @@ export async function listEventsHandler(req, res, next) {
   }
 }
 
+/** Handles GET request for a specific event by ID. */
 export async function getEventHandler(req, res, next) {
   try {
     const includeStats = req.query.includeStats === 'true';
@@ -38,6 +44,7 @@ export async function getEventHandler(req, res, next) {
   }
 }
 
+/** Handles PUT request to update an existing event. */
 export async function updateEventHandler(req, res, next) {
   try {
     const event = await updateEvent(req.params.id, req.body);
@@ -47,9 +54,12 @@ export async function updateEventHandler(req, res, next) {
   }
 }
 
+/** Handles DELETE request to delete an event. */
 export async function deleteEventHandler(req, res, next) {
   try {
-    const hardDelete = req.query.hard === 'true';
+    // Note: The logic in auth.routes.js overrides this to force hard deletion 
+    // and attendee cleanup for admin-side DELETE requests.
+    const hardDelete = req.query.hard === 'true'; 
     const result = await deleteEvent(req.params.id, hardDelete);
     res.json(result);
   } catch (err) {
@@ -57,6 +67,7 @@ export async function deleteEventHandler(req, res, next) {
   }
 }
 
+/** Handles GET request for event summary (capacity, revenue). */
 export async function getEventSummaryHandler(req, res, next) {
   try {
     const summary = await getEventSummary(req.params.id);
@@ -66,6 +77,7 @@ export async function getEventSummaryHandler(req, res, next) {
   }
 }
 
+/** Handles GET request for attendees registered for a specific event. */
 export async function getEventAttendeesHandler(req, res, next) {
   try {
     const { listAttendees } = await import('../services/attendee.service.js');

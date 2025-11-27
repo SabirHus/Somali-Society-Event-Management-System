@@ -1,12 +1,18 @@
+// server/src/controllers/checkout.controller.js - Handlers for Public Checkout Flow
+
 import { createCheckoutSession, getSession } from "../services/payment.service.js";
 import { summary } from "../services/attendee.service.js";
 import { getEventById } from "../services/event.service.js";
 import logger from "../utils/logger.js";
 
+/**
+ * Handles POST request to create a new Stripe checkout session.
+ */
 export async function createSession(req, res, next) {
   try {
     const { name, email, phone, quantity, eventId } = req.body;
 
+    // Basic Validation
     if (!name || !email || !eventId) {
       return res.status(400).json({
         error: "validation_error",
@@ -14,6 +20,7 @@ export async function createSession(req, res, next) {
       });
     }
 
+    // Fetch event details with stats to check active status and capacity
     const event = await getEventById(eventId, true);
     
     if (!event.isActive) {
@@ -24,6 +31,8 @@ export async function createSession(req, res, next) {
     }
 
     const requestedQuantity = parseInt(quantity) || 1;
+    
+    // Check capacity before creating session
     if (event.remaining < requestedQuantity) {
       return res.status(400).json({
         error: "capacity_exceeded",
@@ -46,6 +55,7 @@ export async function createSession(req, res, next) {
       quantity: requestedQuantity
     });
 
+    // Delegate to Payment Service
     const result = await createCheckoutSession({
       name,
       email,
@@ -61,10 +71,13 @@ export async function createSession(req, res, next) {
       error: err.message,
       body: req.body
     });
-    next(err);
+    next(err); // Pass error to centralized error handler
   }
 }
 
+/**
+ * Handles GET request to verify a successful Stripe session via query parameter.
+ */
 export async function checkoutSuccess(req, res, next) {
   try {
     const { session_id } = req.query;
@@ -76,8 +89,10 @@ export async function checkoutSuccess(req, res, next) {
       });
     }
 
+    // Delegate to Payment Service
     const session = await getSession(session_id);
     
+    // Return relevant session data to the client
     res.json({
       success: true,
       session: {
@@ -92,4 +107,5 @@ export async function checkoutSuccess(req, res, next) {
   }
 }
 
+// Export summary function for use in public routes
 export { summary };

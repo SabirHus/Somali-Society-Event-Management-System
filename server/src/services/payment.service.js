@@ -1,8 +1,15 @@
+// server/src/services/payment.service.js - Interface with Stripe API
+
 import Stripe from "stripe";
 import logger from "../utils/logger.js";
 
+// Initialize Stripe client using the secret key from environment variables
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+/**
+ * Creates a Stripe Checkout Session for payment processing.
+ * @param {object} bookingDetails - User and event data needed for the session.
+ */
 export async function createCheckoutSession({ name, email, phone, quantity, eventId, stripePriceId }) {
   if (!stripePriceId) {
     throw new Error("Missing stripePriceId for event");
@@ -12,6 +19,7 @@ export async function createCheckoutSession({ name, email, phone, quantity, even
     throw new Error("Missing eventId");
   }
 
+  // Determine dynamic URLs for redirection after payment completion/cancellation
   const baseUrl = process.env.APP_URL || process.env.WEB_ORIGIN || 'http://localhost:5173';
   const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`;
   const cancelUrl = `${baseUrl}/event/${eventId}?cancelled=true`;
@@ -24,10 +32,11 @@ export async function createCheckoutSession({ name, email, phone, quantity, even
   });
 
   try {
+    // Create the session object
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      customer_email: email,
+      customer_email: email, // Pre-populates email for customer
       success_url: successUrl,
       cancel_url: cancelUrl,
       line_items: [
@@ -36,6 +45,7 @@ export async function createCheckoutSession({ name, email, phone, quantity, even
           quantity: Number(quantity || 1),
         },
       ],
+      // Store necessary data to link payment back to attendee records via webhook
       metadata: {
         name: String(name || ""),
         email: String(email || ""),
@@ -44,7 +54,8 @@ export async function createCheckoutSession({ name, email, phone, quantity, even
         eventId: String(eventId)
       },
       billing_address_collection: 'auto',
-      expires_at: Math.floor(Date.now() / 1000) + (30 * 60),
+      // Session expires in 30 minutes
+      expires_at: Math.floor(Date.now() / 1000) + (30 * 60), 
     });
 
     logger.info('Checkout session created', {
@@ -61,10 +72,12 @@ export async function createCheckoutSession({ name, email, phone, quantity, even
       eventId,
       quantity
     });
-    throw error;
+    // Re-throw Stripe error for error handler
+    throw error; 
   }
 }
 
+/** Retrieves details of a Stripe Checkout Session by ID. */
 export async function getSession(sessionId) {
   try {
     return await stripe.checkout.sessions.retrieve(sessionId);
@@ -77,8 +90,12 @@ export async function getSession(sessionId) {
   }
 }
 
+/** Utility function to verify the authenticity of a Stripe webhook event. */
 export function constructWebhookEvent(rawBody, signature) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!secret) throw new Error("Missing STRIPE_WEBHOOK_SECRET");
+  if (!secret) {
+    // Critical security check
+    throw new Error("Missing STRIPE_WEBHOOK_SECRET");
+  }
   return stripe.webhooks.constructEvent(rawBody, signature, secret);
 }

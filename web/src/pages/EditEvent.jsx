@@ -2,11 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './Admin.css';
 
+// --- Constants ---
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 export default function EditEvent() {
+  // --- React Hooks ---
   const { eventId } = useParams();
   const navigate = useNavigate();
+  
+  // --- State Management ---
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
@@ -19,10 +23,16 @@ export default function EditEvent() {
     capacity: ''
   });
 
+  // --- Effects ---
+
+  // Fetches event details on component mount or eventId change
   useEffect(() => {
     fetchEventDetails();
   }, [eventId]);
 
+  // --- Data Fetching & Handling ---
+
+  /** Fetches specific event details using the stored admin token. */
   async function fetchEventDetails() {
     const token = localStorage.getItem('adminToken');
     
@@ -42,11 +52,12 @@ export default function EditEvent() {
       if (!response.ok) throw new Error('Failed to fetch event');
       
       const event = await response.json();
+      // Initialize form data with fetched values
       setFormData({
         name: event.name,
         description: event.description || '',
         location: event.location,
-        eventDate: event.eventDate.split('T')[0],
+        eventDate: event.eventDate.split('T')[0], // Format date for input type="date"
         eventTime: event.eventTime,
         price: event.price,
         capacity: event.capacity
@@ -58,6 +69,7 @@ export default function EditEvent() {
     }
   }
 
+  /** Handles changes to form input fields. */
   function handleChange(e) {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -66,6 +78,7 @@ export default function EditEvent() {
     }));
   }
 
+  /** Handles form submission for updating the event. */
   async function handleSubmit(e) {
     e.preventDefault();
     const token = localStorage.getItem('adminToken');
@@ -75,9 +88,10 @@ export default function EditEvent() {
       return;
     }
 
+    // Mandatory confirmation check before sending the request
     if (!window.confirm(`Confirm save changes for event: "${formData.name}"?`)) {
-    return; // Stop execution if the user cancels
-  }
+      return; 
+    }
 
     setLoading(true);
     setError(null);
@@ -99,7 +113,7 @@ export default function EditEvent() {
       }
 
       alert('Event updated successfully!');
-      navigate('/admin');
+      navigate('/admin'); // Redirect back to dashboard on success
     } catch (err) {
       setError(err.message);
     } finally {
@@ -107,19 +121,22 @@ export default function EditEvent() {
     }
   }
 
+  /** Handles the Cancel button click with mandatory confirmation. */
   const handleCancel = () => {
-    if (window.confirm('Are you sure you want to cancel editing? Any unsaved changes will be lost.')) {
-      navigate('/admin');
-    }
-  };
+    // Show confirmation regardless of whether changes were made
+    if (window.confirm('Are you sure you want to cancel editing? Any unsaved changes will be lost.')) {
+      navigate('/admin');
+    }
+  };
 
+  // --- Render ---
   return (
     <div className="admin-container">
       <div className="admin-header">
         <div className="header-content">
           <div className="header-left">
             <h1>Edit Event</h1>
-            <button onClick={() => navigate('/admin')} className="back-btn-inline">
+            <button onClick={handleCancel} className="back-btn-inline">
               ← Back to Dashboard
             </button>
           </div>
