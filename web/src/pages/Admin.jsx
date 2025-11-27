@@ -106,6 +106,10 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
       fetchEvents(data.token);
     } catch (err) {
       setError(err.message);
+      setLoginForm({
+      email: '',
+      password: ''
+      });
     } finally {
       setLoading(false);
     }
