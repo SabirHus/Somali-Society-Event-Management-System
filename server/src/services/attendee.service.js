@@ -30,8 +30,11 @@ export async function upsertAttendeeFromSession(session) {
     quantity
   });
 
-  const existing = await prisma.attendee.findUnique({
-    where: { stripeSessionId: session.id },
+  // Check if session already processed (look for the primary attendee)
+  const existing = await prisma.attendee.findFirst({
+    where: { 
+      stripeSessionId: session.id 
+    },
   });
 
   if (existing) {
@@ -39,9 +42,34 @@ export async function upsertAttendeeFromSession(session) {
       sessionId: session.id,
       attendeeId: existing.id
     });
-    return [];
+    
+    // Return all attendees for this purchase (same email + event + similar time)
+    const allAttendees = await prisma.attendee.findMany({
+      where: {
+        email: email,
+        eventId: eventId,
+        createdAt: {
+          gte: new Date(existing.createdAt.getTime() - 10000),
+          lte: new Date(existing.createdAt.getTime() + 10000)
+        }
+      },
+      include: { 
+        event: {
+          select: {
+            id: true,
+            name: true,
+            eventDate: true,
+            eventTime: true,
+            location: true
+          }
+        }
+      }
+    });
+    
+    return allAttendees;
   }
 
+  // Verify event exists and has capacity
   const event = await prisma.event.findUnique({
     where: { id: eventId },
     include: {
@@ -66,26 +94,63 @@ export async function upsertAttendeeFromSession(session) {
   const qty = parseInt(quantity) || 1;
   const attendees = [];
 
+  // Create all attendees
   for (let i = 0; i < qty; i++) {
     const code = await generateUniqueCode();
-    const attendee = await prisma.attendee.create({
-      data: {
-        name: i === 0 ? name : `${name} (Guest ${i})`,
-        email,
-        phone: phone || null,
-        code,
-        stripeSessionId: session.id,
-        eventId,
-        checkedIn: false,
-      },
-      include: {
-        event: true
+    
+    try {
+      const attendee = await prisma.attendee.create({
+        data: {
+          name: i === 0 ? name : `${name} (Guest ${i})`,
+          email,
+          phone: phone || null,
+          code,
+          stripeSessionId: i === 0 ? session.id : null,
+          eventId,
+          checkedIn: false
+          // DON'T set createdAt/updatedAt - let Prisma handle them!
+        },
+        include: {
+          event: {
+            select: {
+              id: true,
+              name: true,
+              eventDate: true,
+              eventTime: true,
+              location: true
+            }
+          }
+        }
+      });
+      
+      attendees.push(attendee);
+      
+      logger.info(`Created attendee ${i + 1}/${qty}`, {
+        code: attendee.code,
+        name: attendee.name,
+        hasSessionId: !!attendee.stripeSessionId
+      });
+      
+    } catch (error) {
+      logger.error(`Failed to create attendee ${i + 1}/${qty}`, {
+        error: error.message,
+        code: error.code,
+        name: i === 0 ? name : `${name} (Guest ${i})`
+      });
+      
+      // If we fail partway through, log what we created
+      if (attendees.length > 0) {
+        logger.error('Partial creation - created attendees:', {
+          count: attendees.length,
+          codes: attendees.map(a => a.code)
+        });
       }
-    });
-    attendees.push(attendee);
+      
+      throw error;
+    }
   }
 
-  logger.info('Attendees created', {
+  logger.info('All attendees created successfully', {
     sessionId: session.id,
     eventId,
     count: attendees.length,
@@ -182,7 +247,7 @@ export async function summary() {
 }
 
 export async function getAttendeeBySessionId(sessionId) {
-  return await prisma.attendee.findUnique({
+  return await prisma.attendee.findFirst({
     where: { stripeSessionId: sessionId },
     include: {
       event: true

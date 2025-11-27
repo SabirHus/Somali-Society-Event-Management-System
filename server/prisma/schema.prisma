@@ -44,7 +44,7 @@ model Attendee {
   email           String
   phone           String?
   code            String   @unique
-  stripeSessionId String   @unique
+  stripeSessionId String   
   checkedIn       Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -53,5 +53,6 @@ model Attendee {
 
   @@index([eventId])
   @@index([email])
+  @@index([stripeSessionId])
   @@map("attendees")
 }

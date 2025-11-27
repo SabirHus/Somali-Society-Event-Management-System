@@ -73,7 +73,7 @@ export default function Success() {
         <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🎉</div>
         <h1 style={{ color: '#003B73', marginBottom: '20px' }}>Payment Successful!</h1>
         <p style={{ fontSize: '1.1rem', color: '#495057', marginBottom: '30px' }}>
-          Thank you for your registration. You will receive a confirmation email shortly with your ticket and QR code.
+          Thank you for your registration. You will receive a confirmation email shortly with your ticket and QR code. <br></br> <br></br>(If you don't see it, please check your spam or junk folder.)
         </p>
         
         {session && (

@@ -112,6 +112,9 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
   }
 
   function handleLogout() {
+    if (!window.confirm("Are you sure you want to log out of the Admin Dashboard?")) {
+    return;
+  }
     localStorage.removeItem('adminToken');
     setToken(null);
     setIsAuthenticated(false);
@@ -146,6 +149,10 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
 
   async function handleCreateEvent(e) {
     e.preventDefault();
+
+    if (!window.confirm(`Are you sure you want to create the event: "${eventForm.name}"?`)) {
+    return; // Stop execution if the user cancels
+  }
     setLoading(true);
     setError(null);
 
@@ -189,19 +196,6 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
     }
   }
 
-  function handleEditEvent(event) {
-    setEditingEvent(event);
-    setEditFormData({
-      name: event.name,
-      description: event.description || '',
-      location: event.location,
-      eventDate: event.eventDate.split('T')[0],
-      eventTime: event.eventTime,
-      price: event.price,
-      capacity: event.capacity
-    });
-  }
-
   function handleEditFormChange(e) {
     const { name, value } = e.target;
     setEditFormData(prev => ({
@@ -217,6 +211,10 @@ const [attendeeSortConfig, setAttendeeSortConfig] = useState({
       alert('Not authenticated');
       return;
     }
+
+    if (!window.confirm(`Confirm save changes for event: "${editFormData.name}"?`)) {
+    return; // Stop execution if the user cancels
+  }
 
     try {
       const response = await fetch(`${API_URL}/api/auth/events/${editingEvent.id}`, {

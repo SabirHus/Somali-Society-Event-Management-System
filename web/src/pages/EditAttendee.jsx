@@ -71,6 +71,10 @@ export default function EditAttendee() {
       return;
     }
 
+    if (!window.confirm(`Confirm save changes for attendee: "${formData.name}"?`)) {
+    return; // Stop execution if the user cancels
+  }
+
     setLoading(true);
     setError(null);
 
@@ -98,6 +102,12 @@ export default function EditAttendee() {
       setLoading(false);
     }
   }
+
+  const handleCancel = () => {
+    if (window.confirm('Are you sure you want to cancel editing? Any unsaved changes will be lost.')) {
+      navigate('/admin');
+    }
+  };
 
   return (
     <div className="admin-container">
@@ -178,7 +188,7 @@ export default function EditAttendee() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate('/admin')}
+                  onClick={handleCancel}
                   className="btn btn-secondary"
                 >
                   Cancel
