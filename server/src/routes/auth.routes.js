@@ -3,9 +3,10 @@
 import express from 'express';
 import { prisma } from '../models/prisma.js';
 import { registerAdmin, loginAdmin } from '../services/auth.service.js';
-import { adminList, adminToggle } from '../controllers/admin.controller.js';
+import { adminList} from '../controllers/admin.controller.js';
 import { loginRateLimiter, adminRateLimiter } from '../middleware/rate-limit.js';
 import { asyncHandler } from '../middleware/error-handler.js';
+import { updateEvent } from '../services/event.service.js';
 
 const router = express.Router();
 
@@ -258,28 +259,15 @@ router.put(
   })
 );
 
-// PUT /api/auth/events/:id - Update event fields (used by modal/edit page)
+// PUT /api/auth/events/:id - Update event details
 router.put(
   '/events/:id',
   adminRateLimiter,
   asyncHandler(async (req, res) => {
     const eventId = req.params.id;
-    const { name, description, location, eventDate, eventTime, price, capacity } = req.body;
-    
+    // ⭐ FIX: Delegate the update logic to the Service Layer
     try {
-      // Logic duplicated from event.service updateEvent function, should call it if possible
-      const event = await prisma.event.update({
-        where: { id: eventId },
-        data: {
-          ...(name && { name }),
-          ...(description !== undefined && { description }),
-          ...(location && { location }),
-          ...(eventDate && { eventDate: new Date(eventDate) }),
-          ...(eventTime && { eventTime }),
-          ...(price !== undefined && { price: parseFloat(price) }),
-          ...(capacity !== undefined && { capacity: parseInt(capacity) })
-        }
-      });
+      const event = await updateEvent(eventId, req.body);
       
       res.json({
         success: true,
@@ -287,6 +275,7 @@ router.put(
         event
       });
     } catch (error) {
+      // Re-throw specific error or log generic failure
       console.error('Update event error:', error);
       res.status(500).json({
         success: false,
