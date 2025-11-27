@@ -108,7 +108,14 @@ export default function Terms() {
             Refunds will be processed within 14 working days to the original payment method.
           </p>
 
-          <h3>4.3 Event Changes</h3>
+          <h3>4.3 Unauthorized Chargebacks</h3>
+          <p>
+            If a chargeback or payment dispute is raised against a valid transaction, the corresponding ticket(s) 
+            will be immediately invalidated, and entry will be refused. Any resulting fees incurred by the Society 
+            may be subject to collection.
+          </p>
+
+          <h3>4.4 Event Changes</h3>
           <p>
             We reserve the right to make reasonable changes to:
           </p>
@@ -150,7 +157,7 @@ export default function Terms() {
           </p>
           <ul>
             <li>Check your email for the confirmation (including spam folder)</li>
-            <li>Contact us at <a href="mailto:contact@somsocsal.com">contact@somsocsal.com</a> with your name and purchase details</li>
+            <li>Contact us at <a href="mailto:somsocsalford@gmail.com">somsocsalford@gmail.com</a> with your name and purchase details</li>
             <li>We can verify your booking using your email address</li>
           </ul>
           <p>
@@ -245,7 +252,7 @@ export default function Terms() {
             If you have any questions, issues, or complaints, please contact us:
           </p>
           <ul>
-            <li><strong>Email:</strong> <a href="mailto:contact@somsocsal.com">contact@somsocsal.com</a></li>
+            <li><strong>Email:</strong> <a href="mailto:somsocsalford@gmail.com">somsocsalford@gmail.com</a></li>
             <li><strong>Website:</strong> <a href="https://somsocsal.com">somsocsal.com</a></li>
           </ul>
           <p>

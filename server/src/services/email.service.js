@@ -102,6 +102,8 @@ export async function sendOrderEmail({ email, name, code, quantity, amount, loca
       month: 'long',
       day: 'numeric'
     });
+    
+    const formattedAmount = `£${amount.toFixed(2)}`;
 
     // Send email
     const { data, error } = await resend.emails.send({
@@ -115,213 +117,198 @@ export async function sendOrderEmail({ email, name, code, quantity, amount, loca
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            body {
-              margin: 0;
-              padding: 0;
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-              background: #f5f5f5;
+            /* Reset styles */
+            body, table, td, p, a, li, blockquote {
+                margin: 0;
+                padding: 0;
+                border-collapse: collapse;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+                color: #333333;
+                line-height: 1.5;
             }
             .email-container {
-              max-width: 600px;
-              margin: 0 auto;
-              background: white;
+                max-width: 600px;
+                margin: 0 auto;
+                background: white;
             }
             .header {
-              background: linear-gradient(135deg, #003B73 0%, #0074D9 100%);
-              color: white;
-              padding: 40px 30px;
-              text-align: center;
+                background: linear-gradient(135deg, #003B73 0%, #0074D9 100%);
+                color: white;
+                padding: 40px 30px;
+                text-align: center;
             }
             .header h1 {
-              margin: 0 0 10px 0;
-              font-size: 28px;
-              font-weight: 700;
-            }
-            .header p {
-              margin: 0;
-              font-size: 16px;
-              opacity: 0.95;
+                margin: 0 0 10px 0;
+                font-size: 28px;
+                font-weight: 700;
             }
             .content {
-              padding: 40px 30px;
+                padding: 40px 30px;
             }
             .greeting {
-              font-size: 16px;
-              color: #333;
-              margin: 0 0 20px 0;
+                font-size: 16px;
+                color: #333;
+                margin: 0 0 20px 0;
             }
             .booking-code-box {
-              background: #003B73;
-              color: white;
-              padding: 20px;
-              text-align: center;
-              border-radius: 8px;
-              margin: 30px 0;
+                background: #003B73;
+                color: white;
+                padding: 20px;
+                text-align: center;
+                border-radius: 8px;
+                margin: 30px 0;
             }
             .booking-code-label {
-              font-size: 14px;
-              opacity: 0.9;
-              margin: 0 0 8px 0;
+                font-size: 14px;
+                opacity: 0.9;
+                margin: 0 0 8px 0;
             }
             .booking-code {
-              font-size: 32px;
-              font-weight: 700;
-              letter-spacing: 3px;
-              margin: 0;
+                font-size: 32px;
+                font-weight: 700;
+                letter-spacing: 3px;
+                margin: 0;
             }
-            .info-box {
-              background: #f8f9fa;
-              border-left: 4px solid #0074D9;
-              padding: 20px;
-              margin: 20px 0;
-              border-radius: 4px;
+            .info-box-table {
+                background: #f8f9fa;
+                border-left: 4px solid #0074D9;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 4px;
+                width: 100%;
             }
-            .info-row {
-              display: flex;
-              justify-content: space-between;
-              padding: 8px 0;
-              border-bottom: 1px solid #dee2e6;
+            .info-row td {
+                padding: 8px 0;
+                border-bottom: 1px solid #dee2e6;
             }
-            .info-row:last-child {
-              border-bottom: none;
+            .info-row:last-child td {
+                border-bottom: none;
             }
             .info-label {
-              font-weight: 600;
-              color: #495057;
+                font-weight: 600;
+                color: #495057;
+                width: 30%;
+                text-align: left;
             }
             .info-value {
-              color: #212529;
+                color: #212529;
+                text-align: right;
             }
             .notice-box {
-              background: #fff3cd;
-              border-left: 4px solid #ffc107;
-              padding: 20px;
-              margin: 20px 0;
-              border-radius: 4px;
-            }
-            .notice-box strong {
-              color: #856404;
-              display: block;
-              margin-bottom: 10px;
-            }
-            .notice-box ul {
-              margin: 10px 0 0 0;
-              padding-left: 20px;
-              color: #856404;
-            }
-            .notice-box li {
-              margin: 8px 0;
-            }
-            .cta-box {
-              text-align: center;
-              margin: 30px 0;
-            }
-            .cta-button {
-              display: inline-block;
-              background: #0074D9;
-              color: white !important;
-              text-decoration: none;
-              padding: 14px 30px;
-              border-radius: 8px;
-              font-weight: 600;
-              font-size: 16px;
+                background: #fff3cd;
+                border-left: 4px solid #ffc107;
+                padding: 20px;
+                margin: 20px 0;
+                border-radius: 4px;
             }
             .footer {
-              background: #f8f9fa;
-              padding: 30px;
-              text-align: center;
-              color: #6c757d;
-              font-size: 14px;
+                background: #f8f9fa;
+                padding: 30px;
+                text-align: center;
+                color: #6c757d;
+                font-size: 14px;
             }
             .footer a {
-              color: #0074D9;
-              text-decoration: none;
+                color: #0074D9;
+                text-decoration: none;
             }
           </style>
         </head>
         <body>
-          <div class="email-container">
-            <!-- Header -->
-            <div class="header">
-              <h1>🎉 Booking Confirmed!</h1>
-              <p>${eventName}</p>
-            </div>
-            
-            <!-- Content -->
-            <div class="content">
-              <p class="greeting">Hi ${name},</p>
-              <p class="greeting">Thank you for registering! Your booking has been confirmed.</p>
-              
-              <!-- Booking Code -->
-              <div class="booking-code-box">
-                <p class="booking-code-label">Your Booking Code</p>
-                <p class="booking-code">${code}</p>
-              </div>
-              
-              <!-- Event Details -->
-              <div class="info-box">
-                <div class="info-row">
-                  <span class="info-label">Event:</span>
-                  <span class="info-value">${eventName}</span>
+          <center>
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td align="center">
+                <div class="email-container">
+                  <!-- Header -->
+                  <div class="header">
+                    <h1>&#x1F389; Booking Confirmed!</h1>
+                    <p>${eventName}</p>
+                  </div>
+                  
+                  <!-- Content -->
+                  <div class="content">
+                    <p class="greeting">Hi ${name},</p>
+                    <p class="greeting">Thank you for registering! Your booking has been confirmed. Your ticket is attached.</p>
+                    
+                    <!-- Booking Code -->
+                    <div class="booking-code-box" style="background: #003B73; color: white; padding: 20px; text-align: center; border-radius: 8px; margin: 30px 0;">
+                      <p class="booking-code-label" style="font-size: 14px; opacity: 0.9; margin: 0 0 8px 0;">Your Booking Code</p>
+                      <p class="booking-code" style="font-size: 32px; font-weight: 700; letter-spacing: 3px; margin: 0;">${code}</p>
+                    </div>
+                    
+                    <!-- Event Details (Converted to Table) -->
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="info-box-table" style="background: #f8f9fa; border-left: 4px solid #0074D9; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                      <tr>
+                        <td style="padding: 0;">
+                          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                            
+                            <tr class="info-row">
+                              <td class="info-label" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: 600; color: #495057; width: 30%; text-align: left;">Event:</td>
+                              <td class="info-value" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; color: #212529; text-align: right;">${eventName}</td>
+                            </tr>
+                            <tr class="info-row">
+                              <td class="info-label" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: 600; color: #495057; width: 30%; text-align: left;">Date:</td>
+                              <td class="info-value" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; color: #212529; text-align: right;">${formattedDate}</td>
+                            </tr>
+                            <tr class="info-row">
+                              <td class="info-label" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: 600; color: #495057; width: 30%; text-align: left;">Time:</td>
+                              <td class="info-value" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; color: #212529; text-align: right;">${eventTime}</td>
+                            </tr>
+                            <tr class="info-row">
+                              <td class="info-label" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: 600; color: #495057; width: 30%; text-align: left;">Location:</td>
+                              <td class="info-value" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; color: #212529; text-align: right;">${location}</td>
+                            </tr>
+                            <tr class="info-row">
+                              <td class="info-label" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; font-weight: 600; color: #495057; width: 30%; text-align: left;">Tickets:</td>
+                              <td class="info-value" style="padding: 8px 0; border-bottom: 1px solid #dee2e6; color: #212529; text-align: right;">${quantity}</td>
+                            </tr>
+                            <tr class="info-row" style="border-bottom: none;">
+                              <td class="info-label" style="padding: 8px 0; border-bottom: none; font-weight: 700; color: #003B73; width: 30%; text-align: left;">Total Paid:</td>
+                              <td class="info-value" style="padding: 8px 0; border-bottom: none; font-weight: 700; color: #003B73; text-align: right;">${formattedAmount}</td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    <!-- PDF Attachment Notice -->
+                    <div class="notice-box" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                      <strong style="color: #856404; display: block; margin-bottom: 10px;">📱 QR Code Attached</strong>
+                      <p style="margin: 0; color: #856404;">Your QR code ticket is attached to this email. Download it and show it at the event entrance for quick check-in!</p>
+                    </div>
+                    
+                    <!-- CTA -->
+                    <div style="text-align: center; margin: 30px 0;">
+                      <p style="font-size: 18px; color: #0074D9; font-weight: 600; margin: 0 0 20px 0;">
+                        See you at the event! &#x1F38A;
+                      </p>
+                    </div>
+                    
+                    <!-- Need Help -->
+                    <h3 style="color: #003B73; margin: 30px 0 15px 0;">Need Help?</h3>
+                    <p style="color: #495057;">
+                      For event information, check out our 
+                      <a href="https://www.instagram.com/" style="color: #0074D9; text-decoration: none; margin: 0 8px;">Instagram
+                      </a>
+                       or 
+                        <a href="https://chat.whatsapp.com/Ba1DrDXZpRo3N4aWrcV6rl" style="color: #0074D9; text-decoration: none; margin: 0 8px;">WhatsApp
+                      </a>
+                    </p>
+                  </div>
+                  
+                  <!-- Footer -->
+                  <div class="footer" style="background: #f8f9fa; padding: 30px; text-align: center; color: #6c757d; font-size: 14px;">
+                    <p style="margin: 0 0 10px 0;">© 2025 Somali Society Salford. All rights reserved.</p>
+                    <p style="margin: 0; font-size: 12px;">
+                      This is an automated confirmation email. Please do not reply to this email.
+                    </p>
+                  </div>
                 </div>
-                <div class="info-row">
-                  <span class="info-label">Date:</span>
-                  <span class="info-value">${formattedDate}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Time:</span>
-                  <span class="info-value">${eventTime}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Location:</span>
-                  <span class="info-value">${location}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Tickets:</span>
-                  <span class="info-value">${quantity}</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">Total Paid:</span>
-                  <span class="info-value">£${amount.toFixed(2)}</span>
-                </div>
-              </div>
-              
-              <!-- PDF Attachment Notice -->
-              <div class="notice-box">
-                <strong>📱 QR Code Attached</strong>
-                <p style="margin: 0;">Your QR code ticket is attached to this email. Download it and show it at the event entrance for quick check-in!</p>
-              </div>
-              
-              <!-- CTA -->
-              <div class="cta-box">
-                <p style="font-size: 18px; color: #0074D9; font-weight: 600; margin: 0 0 20px 0;">
-                  See you at the event! 🎊
-                </p>
-              </div>
-              
-              <!-- Need Help -->
-              <h3 style="color: #003B73; margin: 30px 0 15px 0;">Need Help?</h3>
-              <p style="color: #495057;">
-                For event information, check out our 
-                <a href="https://www.instagram.com/" style="color: #0074D9; text-decoration: none; margin: 0 8px;">
-                  Instagram
-                </a>
-                 or 
-                  <a href="https://chat.whatsapp.com/Ba1DrDXZpRo3N4aWrcV6rl" style="color: #0074D9; text-decoration: none; margin: 0 8px;">
-                  WhatsApp
-                </a>.<br>
-                For questions about your booking, contact us at <a href="mailto:contact@somsocsal.com" style="color: #0074D9;">contact@somsocsal.com</a>
-              </p>
-            </div>
-            
-            <!-- Footer -->
-            <div class="footer">
-              <p style="margin: 0 0 10px 0;">© 2025 Somali Society Salford. All rights reserved.</p>
-              <p style="margin: 0; font-size: 12px;">
-                This is an automated confirmation email. Please do not reply to this email.
-              </p>
-            </div>
-          </div>
+              </td>
+            </tr>
+          </table>
+          </center>
         </body>
         </html>
       `,
@@ -392,27 +379,44 @@ export async function sendPasswordResetEmail({ email, name, resetUrl }) {
           </style>
         </head>
         <body>
-          <div class="container">
-            <h2>Password Reset Request</h2>
-            <p>Hi ${name},</p>
-            <p>We received a request to reset your password for your Somali Society Salford admin account.</p>
-            <p>Click the button below to reset your password:</p>
-            <a href="${resetUrl}" class="button">Reset Password</a>
-            <div class="warning">
-              <strong>⚠️ Security Notice:</strong>
-              <ul>
-                <li>This link expires in 1 hour</li>
-                <li>If you didn't request this reset, please ignore this email</li>
-                <li>Never share this link with anyone</li>
-              </ul>
-            </div>
-            <p>Or copy and paste this URL into your browser:</p>
-            <p style="word-break: break-all; color: #0074D9;">${resetUrl}</p>
-            <div class="footer">
-              <p>This is an automated email from Somali Society Salford.</p>
-              <p>If you need help, please contact support.</p>
-            </div>
-          </div>
+          <center>
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td align="center">
+                <div class="container">
+                  <h2>Password Reset Request</h2>
+                  <p>Hi ${name},</p>
+                  <p>We received a request to reset your password for your Somali Society Salford admin account.</p>
+                  
+                  <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="cta-table" style="margin: 20px 0;">
+                    <tr>
+                      <td>
+                        <a href="${resetUrl}" class="button" style="display: inline-block; padding: 12px 24px; background-color: #0074D9; color: white !important; text-decoration: none; border-radius: 5px;">
+                          Reset Password
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                  
+                  <div class="warning">
+                    <strong>⚠️ Security Notice:</strong>
+                    <ul>
+                      <li>This link expires in 1 hour</li>
+                      <li>If you didn't request this reset, please ignore this email</li>
+                      <li>Never share this link with anyone</li>
+                    </ul>
+                  </div>
+                  <p>Or copy and paste this URL into your browser:</p>
+                  <p style="word-break: break-all; color: #0074D9;">${resetUrl}</p>
+                  <div class="footer">
+                    <p>This is an automated email from Somali Society Salford.</p>
+                    <p>If you need help, please contact support.</p>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </table>
+          </center>
         </body>
         </html>
       `

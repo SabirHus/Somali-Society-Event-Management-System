@@ -71,7 +71,7 @@ export default function Privacy() {
           <ul>
             <li><strong>Stripe:</strong> Payment processing (secure, PCI-compliant)</li>
             <li><strong>Resend:</strong> Email delivery service</li>
-            <li><strong>Neon/Railway:</strong> Database and hosting providers</li>
+            <li><strong>Vercel</strong> Hosting and Database infrastructure (PostgreSQL/Neon via Prisma)</li>
           </ul>
 
           <h3>4.2 We Do NOT:</h3>
@@ -114,7 +114,7 @@ export default function Privacy() {
             <li><strong>Object:</strong> Opt out of certain processing (e.g., marketing)</li>
             <li><strong>Withdraw Consent:</strong> Where processing is based on consent</li>
           </ul>
-          <p>To exercise these rights, contact us at <a href="mailto:contact@somsocsal.com">contact@somsocsal.com</a></p>
+          <p>To exercise these rights, contact us at <a href="mailto:somsocsalford@gmail.com">somsocsalford@gmail.com</a></p>
         </section>
 
         <section>
@@ -190,7 +190,7 @@ export default function Privacy() {
           <h3>12.1 Contact Us</h3>
           <p>For questions or requests regarding your personal data:</p>
           <ul>
-            <li><strong>Email:</strong> <a href="mailto:contact@somsocsal.com">contact@somsocsal.com</a></li>
+            <li><strong>Email:</strong> <a href="mailto:somsocsalford@gmail.com">somsocsalford@gmail.com</a></li>
             <li><strong>Website:</strong> <a href="https://somsocsal.com">somsocsal.com</a></li>
           </ul>
 
