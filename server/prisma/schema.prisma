@@ -53,7 +53,7 @@ model Attendee {
   email           String
   phone           String?
   code            String   @unique // Unique booking/QR code (e.g., SS-ABC123)
-  stripeSessionId String   // Unique identifier for the Stripe Checkout Session
+  stripeSessionId String?   // Unique identifier for the Stripe Checkout Session
   checkedIn       Boolean  @default(false) // Check-in status (used by scanner)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
