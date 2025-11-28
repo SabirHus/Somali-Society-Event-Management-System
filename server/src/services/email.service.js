@@ -332,7 +332,7 @@ export async function sendOrderEmail({ email, name, code, quantity, amount, loca
                     <h3 style="color: #003B73; margin: 30px 0 15px 0;">Need Help?</h3>
                     <p style="color: #495057;">
                       For event information, check out our 
-                      <a href="https://www.instagram.com/" style="color: #0074D9; text-decoration: none; margin: 0 8px;">
+                      <a href="https://www.instagram.com/uos.somsoc/" style="color: #0074D9; text-decoration: none; margin: 0 8px;">
                         Instagram
                       </a>
                        or 

@@ -22,26 +22,40 @@ export default function Scan() {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-// Check authentication on component mount
-useEffect(() => {
-  const savedToken = localStorage.getItem('adminToken');
-  const authTimestamp = localStorage.getItem('authTimestamp');
-  const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
+  // --- Effects ---
 
-  if (savedToken) {
-    // Check if session is still valid
-    if (authTimestamp && Date.now() - parseInt(authTimestamp) > SESSION_TIMEOUT) {
-      console.warn("Session expired");
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('authTimestamp');
-      setIsAuthenticated(false);
-      setToken(null);
-    } else {
-      setToken(savedToken);
-      setIsAuthenticated(true);
+  // Check authentication on component mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem('adminToken');
+    const authTimestamp = localStorage.getItem('authTimestamp');
+    const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
+
+    if (savedToken) {
+      // Check if session is still valid
+      if (authTimestamp && Date.now() - parseInt(authTimestamp) > SESSION_TIMEOUT) {
+        console.warn("Session expired");
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('authTimestamp');
+        setIsAuthenticated(false);
+        setToken(null);
+      } else {
+        setToken(savedToken);
+        setIsAuthenticated(true);
+      }
     }
-  }
-}, []);
+  }, []);
+
+  // Controls camera lifecycle based on 'scanning' state
+  useEffect(() => {
+    if (scanning) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+
+    // Cleanup function runs on unmount or dependency change
+    return () => stopCamera();
+  }, [scanning]);
 
   // --- Utility Functions (Audio Feedback) ---
   function playSound(type) {
@@ -140,7 +154,6 @@ useEffect(() => {
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       
       try {
-        // Assuming window.jsQR is loaded via the script tag in the return block
         const code = window.jsQR(imageData.data, imageData.width, imageData.height);
         
         if (code && code.data) {
@@ -160,63 +173,63 @@ useEffect(() => {
 
   // --- API Handlers ---
   
-  /** Toggles attendee check-in status by booking code. */
+  /** Checks in attendee by booking code (check-in only, no toggle). */
   async function handleCheckIn(code) {
-  if (!token) {
-    showMessage('error', 'Not authenticated');
-    return;
-  }
+    if (!token) {
+      showMessage('error', 'Not authenticated');
+      return;
+    }
 
-  setLoading(true);
-  playSound('scan');
+    setLoading(true);
+    playSound('scan');
 
-  try {
-    const response = await fetch(`${API_URL}/api/auth/attendees/${code}/checkin`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    try {
+      const response = await fetch(`${API_URL}/api/auth/attendees/${code}/checkin`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Check-in failed');
       }
-    });
 
-    const data = await response.json();
+      // Extract attendee from response
+      const attendeeData = data.attendee || data;  
+      setAttendee(attendeeData);
 
-    if (!response.ok) {
-      throw new Error(data.message || 'Check-in failed');
-    }
+      // Check if already checked in
+      if (attendeeData.alreadyCheckedIn) {
+        showMessage('warning', `⚠️ ${attendeeData.name} is already checked in!`);
+        playSound('warning');
+      } else {
+        showMessage('success', `✅ ${attendeeData.name} checked in successfully!`);
+        playSound('success');
+      }
 
-    // Extract attendee from response
-    const attendeeData = data.attendee || data;  
-    setAttendee(attendeeData);
+      // Clear attendee card after 5 seconds
+      setTimeout(() => {
+        setAttendee(null);
+        setLastScannedCode(null);
+      }, 5000);
 
-    // Check if already checked in
-    if (attendeeData.alreadyCheckedIn) {
-      showMessage('warning', `⚠️ ${attendeeData.name} is already checked in!`);
-      playSound('warning');
-    } else {
-      showMessage('success', `✅ ${attendeeData.name} checked in successfully!`);
-      playSound('success');
-    }
-
-    // Clear attendee card after 5 seconds
-    setTimeout(() => {
+    } catch (err) {
+      showMessage('error', err.message);
+      playSound('error');
       setAttendee(null);
-      setLastScannedCode(null);
-    }, 5000);
-
-  } catch (err) {
-    showMessage('error', err.message);
-    playSound('error');
-    setAttendee(null);
-    
-    // Allow retry after 2 seconds
-    setTimeout(() => {
-      setLastScannedCode(null);
-    }, 2000);
-  } finally {
-    setLoading(false);
+      
+      // Allow retry after 2 seconds
+      setTimeout(() => {
+        setLastScannedCode(null);
+      }, 2000);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   /** Handles check-in via manual code entry. */
   async function handleManualCheckIn(e) {
@@ -226,20 +239,6 @@ useEffect(() => {
       setManualCode('');
     }
   }
-
-  // --- Effects ---
-  
-  // Controls camera lifecycle based on 'scanning' state
-  useEffect(() => {
-    if (scanning) {
-      startCamera();
-    } else {
-      stopCamera();
-    }
-
-    // Cleanup function runs on unmount or dependency change
-    return () => stopCamera();
-  }, [scanning]);
 
   // --- Render ---
 
@@ -316,19 +315,10 @@ useEffect(() => {
 
         {/* Right Column: Attendee Card Display */}
         {attendee && (
-          <div className={`attendee-card ${attendee.checkedIn ? 'checked-in' : 'checked-out'}`}>
+          <div className="attendee-card checked-in">
             <div className="attendee-status">
-              {attendee.checkedIn ? (
-                <>
-                  <span className="status-icon">✅</span>
-                  <h2>Checked In</h2>
-                </>
-              ) : (
-                <>
-                  <span className="status-icon">⚠️</span>
-                  <h2>Checked Out</h2>
-                </>
-              )}
+              <span className="status-icon">✅</span>
+              <h2>Checked In</h2>
             </div>
             
             <div className="attendee-details">
