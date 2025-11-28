@@ -2,7 +2,7 @@
 // This module provides a centralized, reusable client for all API interactions.
 
 // Base origin for the API; prefer env, fall back to local server port
-const ORIGIN = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const ORIGIN = import.meta.env.VITE_API_URL || "https://somali-soc-backend.onrender.com";
 
 // Standard API prefix
 const API_BASE = `${ORIGIN}/api`;

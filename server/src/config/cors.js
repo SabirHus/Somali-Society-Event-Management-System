@@ -3,7 +3,7 @@
 import cors from 'cors';
 
 // Allowed origin is pulled from environment variables, defaulting to local dev port
-const allowedOrigin = process.env.WEB_ORIGIN || "http://localhost:5173";
+const allowedOrigin = process.env.WEB_ORIGIN || "https://somali-soc-frontend.com";
 
 /**
  * CORS middleware configuration for Express.

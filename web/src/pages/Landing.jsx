@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Landing.css';
 
 // --- Constants ---
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://somali-soc-backend.onrender.com';
 
 export default function Landing() {
   // --- React Hooks ---

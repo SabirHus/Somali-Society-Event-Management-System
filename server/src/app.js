@@ -25,7 +25,7 @@ const app = express();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // CRITICAL: Prioritize the port provided by the hosting environment (Render, Vercel)
 const PORT = process.env.PORT || 4000; 
-const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5173';
+const WEB_ORIGIN = process.env.WEB_ORIGIN || 'https://somali-soc-frontend.com';
 
 // --- Webhook Handler (MUST run before express.json middleware) ---
 

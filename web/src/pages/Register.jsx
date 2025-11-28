@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
 // --- Constants ---
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const API_URL = import.meta.env.VITE_API_URL || "https://somali-soc-backend.onrender.com";
 
 // --- Data Fetching Helper ---
 /** Fetches the overall event capacity summary. */
