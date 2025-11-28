@@ -12,6 +12,7 @@ import { upsertAttendeeFromSession } from './services/attendee.service.js';
 import publicRoutes from './routes/public.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import eventRoutes from './routes/event.routes.js';
+import passwordResetRoutes from './routes/password-reset.routes.js';
 
 // --- Middleware Imports ---
 import { rateLimiter } from './middleware/rate-limit.js';
@@ -20,8 +21,10 @@ import logger from './utils/logger.js';
 
 // --- Initialization ---
 const app = express();
+// Initialize Stripe client
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const PORT = process.env.PORT || 4000;
+// CRITICAL: Prioritize the port provided by the hosting environment (Render, Vercel)
+const PORT = process.env.PORT || 4000; 
 const WEB_ORIGIN = process.env.WEB_ORIGIN || 'http://localhost:5173';
 
 // --- Webhook Handler (MUST run before express.json middleware) ---
@@ -97,7 +100,6 @@ app.post('/webhooks/stripe',
           eventName: primaryAttendee.event.name,
           eventDate: primaryAttendee.event.eventDate,
           eventTime: primaryAttendee.event.eventTime,
-          attendees: attendees
         });
 
         logger.info('Confirmation email sent', {
@@ -125,14 +127,14 @@ app.post('/webhooks/stripe',
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Security Middleware
+// Security Middleware (Helmet)
 app.use(helmet({
   // CSP disabled in dev to allow hot-reloading scripts
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false, 
   crossOriginEmbedderPolicy: false
 }));
 
-// CORS Configuration (Essential for allowing frontend to talk to backend)
+// CORS Configuration
 app.use(cors({ 
   origin: WEB_ORIGIN,
   credentials: true,
@@ -147,6 +149,7 @@ app.use('/api', rateLimiter);
 app.use('/api', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/password-reset', passwordResetRoutes);
 
 // --- Health Check Endpoint ---
 app.get('/health', (req, res) => {
@@ -171,10 +174,11 @@ app.use((req, res) => {
 // Centralized Error Handler
 app.use(errorHandler);
 
-// --- Server Start ---
+// --- Server Start and Shutdown Logic ---
 const server = app.listen(PORT, () => {
-  logger.info(`Server running on http://localhost:${PORT}`);
-  logger.info(`Webhook endpoint: http://localhost:${PORT}/webhooks/stripe`);
+  // ⭐ FIX: Log the actual port being used by the host, removing the misleading 'localhost' prefix
+  logger.info(`Server successfully bound to port: ${PORT}`);
+  logger.info(`Webhook endpoint should be configured to: ${process.env.APP_URL}/webhooks/stripe`);
   logger.info(`CORS enabled for: ${WEB_ORIGIN}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`Stripe mode: ${process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'TEST' : 'LIVE'}`);
