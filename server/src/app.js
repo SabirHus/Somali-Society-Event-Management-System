@@ -32,12 +32,7 @@ const PORT = process.env.PORT || 4000;
 const WEB_ORIGIN = process.env.WEB_ORIGIN;
 
 // CORS Configuration
-app.use(cors({ 
-  origin: WEB_ORIGIN,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(corsMiddleware);
 
 // --- Webhook Handler (MUST run before express.json middleware) ---
 
