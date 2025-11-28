@@ -17,7 +17,7 @@ $Exe = 'C:\stripe.exe'
 
 # Define file paths using relative paths
 $EnvFile = Join-Path $PSScriptRoot '..\..\server\.env' | Resolve-Path
-$ForwardTo = 'https://somali-soc-backend.onrender.com/webhooks/stripe'
+$ForwardTo = 'https://api.somsocsal.com/webhooks/stripe'
 $Events    = 'checkout.session.completed' # Only listen for completed checkouts
 
 # --- Validation ---

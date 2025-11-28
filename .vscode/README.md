@@ -5,7 +5,7 @@ This application is deployed on Render with a custom domain.
 ### Live URLs
 
 - **Frontend:** https://somsocsal.com
-- **Backend API:** https://somali-soc-backend.onrender.com
+- **Backend API:** https://api.somsocsal.com
 - **Admin Dashboard:** https://somsocsal.com/admin
 - **Scanner:** https://somsocsal.com/scan
 
