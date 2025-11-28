@@ -147,7 +147,7 @@ export async function sendOrderEmail({ email, name, code, quantity, amount, loca
       subject: `✅ ${eventName} - Ticket Confirmation`,
       headers: {
           // List-Unsubscribe header for better deliverability with Microsoft/Google
-          'List-Unsubscribe': `<mailto:somsocsalford@gmail.com?subject=Unsubscribe from SomaliSoc Tickets>, <${process.env.APP_URL || 'https://somsocsal.com'}/unsubscribe>`
+          'List-Unsubscribe': `<mailto:somsocsalford@gmail.com?subject=Unsubscribe from SomaliSoc Tickets>, <${process.env.APP_URL}/unsubscribe>`
       },
       attachments: attachments,
       html: `
