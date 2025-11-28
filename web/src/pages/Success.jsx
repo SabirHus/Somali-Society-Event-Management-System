@@ -2,7 +2,7 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 // --- Constants ---
-const API_URL = import.meta.env.VITE_API_URL || 'https://somali-soc-backend.onrender.com/';
+const API_URL = import.meta.env.VITE_API_URL || 'https://somali-soc-backend.onrender.co/';
 
 export default function Success() {
   // --- React Hooks ---

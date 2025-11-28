@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import './Admin.css';
 
 // --- Constants ---
-const API_URL = import.meta.env.VITE_API_URL || 'https://somali-soc-backend.onrender.com/';
+const API_URL = import.meta.env.VITE_API_URL || 'https://somali-soc-backend.onrender.com';
 
 export default function EditAttendee() {
   // --- React Hooks ---

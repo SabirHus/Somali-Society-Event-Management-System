@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './Admin.css';
 
 // --- Constants ---
-const API_URL = import.meta.env.VITE_API_URL || 'https://somali-soc-backend.onrender.com/';
+const API_URL = import.meta.env.VITE_API_URL || 'https://somali-soc-backend.onrender.com';
 // Define client-side session expiry (2 hours)
 const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; 
 

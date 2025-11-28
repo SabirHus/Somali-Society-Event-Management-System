@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import './EventRegister.css';
 
 // --- Constants ---
-const API_URL = import.meta.env.VITE_API_URL || 'https://somali-soc-backend.onrender.com/';
+const API_URL = import.meta.env.VITE_API_URL || 'https://somali-soc-backend.onrender.com';
 
 export default function EventRegister() {
   // --- React Hooks ---

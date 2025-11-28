@@ -254,7 +254,7 @@ export default function Terms() {
           </p>
           <ul>
             <li><strong>Email:</strong> <a href="mailto:somsocsalford@gmail.com">somsocsalford@gmail.com</a></li>
-            <li><strong>Website:</strong> <a href="https://somsoc-frontend.onrender.com/">somsocsal.com</a></li>
+            <li><strong>Website:</strong> <a href="https://somsoc-frontend.onrender.com">somsocsal.com</a></li>
           </ul>
           <p>
             We aim to respond to all inquiries within 3 working days.
