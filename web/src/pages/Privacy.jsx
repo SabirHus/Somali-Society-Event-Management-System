@@ -193,7 +193,7 @@ export default function Privacy() {
           <p>For questions or requests regarding your personal data:</p>
           <ul>
             <li><strong>Email:</strong> <a href="mailto:somsocsalford@gmail.com">somsocsalford@gmail.com</a></li>
-            <li><strong>Website:</strong> <a href="https://somsocsal.com">somsocsal.com</a></li> 
+            <li><strong>Website:</strong> <a href="https://www.somsocsal.com">somsocsal.com</a></li> 
           </ul>
 
           <h3>12.2 Complaints</h3>

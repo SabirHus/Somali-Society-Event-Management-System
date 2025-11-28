@@ -4,7 +4,7 @@ This application is deployed on Render with a custom domain.
 
 ### Live URLs
 
-- **Frontend:** https://somsocsal.com
+- **Frontend:** https://somsocsal.com,https://www.somsocsal.com
 - **Backend API:** https://api.somsocsal.com
 - **Admin Dashboard:** https://somsocsal.com/admin
 - **Scanner:** https://somsocsal.com/scan
