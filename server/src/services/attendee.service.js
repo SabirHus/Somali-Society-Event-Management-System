@@ -182,7 +182,7 @@ export async function listAttendees({ q, eventId } = {}) {
   });
 }
 
-/** Toggles the checkedIn status for a given attendee code. */
+/** Checks in an attendee (does not toggle - only sets to true). */
 export async function toggleCheckInByCode(code) {
   const attendee = await prisma.attendee.findUnique({
     where: { code },
@@ -200,9 +200,25 @@ export async function toggleCheckInByCode(code) {
     throw new Error("Attendee not found");
   }
 
+  // If already checked in, return without changing
+  if (attendee.checkedIn) {
+    logger.info('Attendee already checked in', {
+      code,
+      eventId: attendee.eventId,
+      eventName: attendee.event.name
+    });
+    
+    // Return attendee with special flag
+    return {
+      ...attendee,
+      alreadyCheckedIn: true
+    };
+  }
+
+  // Check in the attendee (set to true)
   const updated = await prisma.attendee.update({
     where: { code },
-    data: { checkedIn: !attendee.checkedIn },
+    data: { checkedIn: true },
     include: {
       event: {
         select: {
@@ -213,14 +229,16 @@ export async function toggleCheckInByCode(code) {
     }
   });
 
-  logger.info('Check-in toggled', {
+  logger.info('Attendee checked in', {
     code,
-    checkedIn: updated.checkedIn,
     eventId: updated.eventId,
     eventName: updated.event.name
   });
 
-  return updated;
+  return {
+    ...updated,
+    alreadyCheckedIn: false
+  };
 }
 
 /** Provides overall summary statistics for all events/attendees (global view). */

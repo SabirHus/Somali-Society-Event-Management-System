@@ -22,6 +22,27 @@ export default function Scan() {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
 
+// Check authentication on component mount
+useEffect(() => {
+  const savedToken = localStorage.getItem('adminToken');
+  const authTimestamp = localStorage.getItem('authTimestamp');
+  const SESSION_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
+
+  if (savedToken) {
+    // Check if session is still valid
+    if (authTimestamp && Date.now() - parseInt(authTimestamp) > SESSION_TIMEOUT) {
+      console.warn("Session expired");
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('authTimestamp');
+      setIsAuthenticated(false);
+      setToken(null);
+    } else {
+      setToken(savedToken);
+      setIsAuthenticated(true);
+    }
+  }
+}, []);
+
   // --- Utility Functions (Audio Feedback) ---
   function playSound(type) {
     // Uses AudioContext for low-latency sound feedback
@@ -141,60 +162,61 @@ export default function Scan() {
   
   /** Toggles attendee check-in status by booking code. */
   async function handleCheckIn(code) {
-    if (!token) {
-      showMessage('error', 'Not authenticated');
-      return;
-    }
-
-    setLoading(true);
-    playSound('scan');
-
-    try {
-      const response = await fetch(`${API_URL}/api/auth/attendees/${code}/checkin`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Check-in failed');
-      }
-
-      // Extract attendee from response (handles both structures)
-      const attendeeData = data.attendee || data;  
-      setAttendee(attendeeData);
-
-      if (attendeeData.checkedIn) {
-        showMessage('success', `✅ ${attendeeData.name} checked in successfully!`);
-        playSound('success');
-      } else {
-        showMessage('warning', `⚠️ ${attendeeData.name} checked out`);
-        playSound('warning');
-      }
-
-      // Clear attendee card after 5 seconds
-      setTimeout(() => {
-        setAttendee(null);
-        setLastScannedCode(null);
-      }, 5000);
-
-    } catch (err) {
-      showMessage('error', err.message);
-      playSound('error');
-      setAttendee(null);
-      
-      // Allow retry after 2 seconds (to scan the same code again)
-      setTimeout(() => {
-        setLastScannedCode(null);
-      }, 2000);
-    } finally {
-      setLoading(false);
-    }
+  if (!token) {
+    showMessage('error', 'Not authenticated');
+    return;
   }
+
+  setLoading(true);
+  playSound('scan');
+
+  try {
+    const response = await fetch(`${API_URL}/api/auth/attendees/${code}/checkin`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Check-in failed');
+    }
+
+    // Extract attendee from response
+    const attendeeData = data.attendee || data;  
+    setAttendee(attendeeData);
+
+    // Check if already checked in
+    if (attendeeData.alreadyCheckedIn) {
+      showMessage('warning', `⚠️ ${attendeeData.name} is already checked in!`);
+      playSound('warning');
+    } else {
+      showMessage('success', `✅ ${attendeeData.name} checked in successfully!`);
+      playSound('success');
+    }
+
+    // Clear attendee card after 5 seconds
+    setTimeout(() => {
+      setAttendee(null);
+      setLastScannedCode(null);
+    }, 5000);
+
+  } catch (err) {
+    showMessage('error', err.message);
+    playSound('error');
+    setAttendee(null);
+    
+    // Allow retry after 2 seconds
+    setTimeout(() => {
+      setLastScannedCode(null);
+    }, 2000);
+  } finally {
+    setLoading(false);
+  }
+}
 
   /** Handles check-in via manual code entry. */
   async function handleManualCheckIn(e) {
