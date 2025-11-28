@@ -166,11 +166,8 @@ app.get('/health', (req, res) => {
 // --- Final Error Handling (MUST be last) ---
 
 // 404 Not Found Handler
-app.use((req, res) => {
-  res.status(404).json({ 
-    error: 'Not Found',
-    path: req.path 
-  });
+app.get('/', (req, res) => {
+  res.json({ status: 'Backend is running', timestamp: new Date().toISOString() });
 });
 
 // Centralized Error Handler
