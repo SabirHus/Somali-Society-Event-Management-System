@@ -12,7 +12,6 @@ import { upsertAttendeeFromSession } from './services/attendee.service.js';
 import publicRoutes from './routes/public.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import eventRoutes from './routes/event.routes.js';
-import passwordResetRoutes from './routes/password-reset.routes.js';
 
 // --- Middleware Imports ---
 import { rateLimiter } from './middleware/rate-limit.js';
@@ -149,7 +148,6 @@ app.use('/api', rateLimiter);
 app.use('/api', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
-app.use('/api/password-reset', passwordResetRoutes);
 
 // --- Health Check Endpoint ---
 app.get('/health', (req, res) => {
