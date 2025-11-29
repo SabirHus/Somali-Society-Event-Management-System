@@ -20,16 +20,9 @@ export async function createCheckoutSession({ name, email, phone, quantity, even
   }
 
   // Determine dynamic URLs for redirection after payment completion/cancellation
-const baseUrl =
-  (process.env.APP_URL || '').trim() ||
-  (process.env.WEB_ORIGIN || '').split(',')[0].trim();
-
-const successUrl =
-  `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`;
-
-const cancelUrl =
-  `${baseUrl}/event/${eventId}?cancelled=true`;
-
+  const baseUrl = process.env.APP_URL || process.env.WEB_ORIGIN;
+  const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`;
+  const cancelUrl = `${baseUrl}/event/${eventId}?cancelled=true`;
 
   logger.info('Creating checkout session', {
     email,
