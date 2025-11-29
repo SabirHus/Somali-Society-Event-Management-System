@@ -178,12 +178,38 @@ export default function Landing() {
         </svg>
         WhatsApp
       </a>
+
+<span className="divider">|</span>
+
+      {/* Internal links: use navigate() so React Router handles them */}
+      <button
+        type="button"
+        className="footer-link-button"
+        onClick={() => navigate('/admin')}
+      >
+        Admin
+      </button>
+
       <span className="divider">|</span>
-      <a href="/admin">Admin</a>
+
+      <button
+        type="button"
+        className="footer-link-button"
+        onClick={() => navigate('/terms')}
+      >
+        Terms
+      </button>
+
       <span className="divider">|</span>
-      <a href="/terms">Terms</a>
-      <span className="divider">|</span>
-      <a href="/privacy">Privacy</a>
+
+      <button
+        type="button"
+        className="footer-link-button"
+        onClick={() => navigate('/privacy')}
+      >
+        Privacy
+      </button>
+
     </div>
   </div>
 </footer>
