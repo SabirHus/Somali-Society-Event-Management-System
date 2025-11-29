@@ -24,6 +24,24 @@ export default function Scan() {
 
   // --- Effects ---
 
+  // Add this effect to load jsQR library
+useEffect(() => {
+  // Check if jsQR is already loaded
+  if (!window.jsQR) {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    script.async = true;
+    script.onload = () => {
+      console.log('✅ jsQR library loaded successfully');
+    };
+    script.onerror = () => {
+      console.error('❌ Failed to load jsQR library');
+      showMessage('error', 'Failed to load QR scanner library');
+    };
+    document.head.appendChild(script);
+  }
+}, []);
+
   // Check authentication on component mount
   useEffect(() => {
     const savedToken = localStorage.getItem('adminToken');
@@ -139,37 +157,45 @@ export default function Scan() {
   }
 
   /** Captures frame from video and attempts to decode QR code using jsQR. */
-  async function scanQRCode() {
-    if (!videoRef.current || !canvasRef.current) return;
+async function scanQRCode() {
+  if (!videoRef.current || !canvasRef.current) return;
 
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
+  const video = videoRef.current;
+  const canvas = canvasRef.current;
+  const context = canvas.getContext('2d');
 
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    
+    try {
+      const code = window.jsQR(imageData.data, imageData.width, imageData.height);
       
-      try {
-        const code = window.jsQR(imageData.data, imageData.width, imageData.height);
-        
-        if (code && code.data) {
-          const scannedCode = code.data.trim();
-          
-          // Only process if it's a new, valid code format
-          if (scannedCode !== lastScannedCode && scannedCode.startsWith('SS-')) {
-            setLastScannedCode(scannedCode);
-            await handleCheckIn(scannedCode);
-          }
-        }
-      } catch (err) {
-        console.error('QR scanning error:', err);
+      // ADD THIS LOGGING
+      if (code) {
+        console.log('🔍 QR Code detected:', code.data);
       }
+      
+      if (code && code.data) {
+        const scannedCode = code.data.trim();
+        console.log('📱 Scanned code:', scannedCode); // ADD THIS
+        
+        if (scannedCode !== lastScannedCode && scannedCode.startsWith('SS-')) {
+          console.log('✅ Valid SS- code, checking in...'); // ADD THIS
+          setLastScannedCode(scannedCode);
+          await handleCheckIn(scannedCode);
+        } else {
+          console.log('❌ Code ignored:', { scannedCode, lastScannedCode }); // ADD THIS
+        }
+      }
+    } catch (err) {
+      console.error('QR scanning error:', err);
     }
   }
+}
 
   // --- API Handlers ---
   
@@ -344,9 +370,6 @@ export default function Scan() {
           </div>
         )}
       </div>
-
-      {/* Script for QR code reading library (Must remain in the JSX output) */}
-      <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     </div>
   );
 }
