@@ -16,7 +16,7 @@ Technical Stack and Infrastructure: The stack of software, hardware, and infrast
 * Financial Intelligibility: Built in Stripe API with powerful webhook capabilities to achieve 100 percent transaction consistency between payment status and database entries.
 * Automated Fulfillment Logic: Developed an asynchronous Resend (SMTP) engine to create and issue unique QR-coded tickets as soon as the checkout was successful.
 * Administrative Scanning Infrastructure: Built a mobile-based dashboard with a real-time QR scanner that coordinates the attendee check-ins to the main database.
-* Performance Optimization: Build time Leveraged Vite to build fast and Cloudflare edge security to reduce latency in protecting global DNS.
+* Performance Optimisation: Build time Leveraged Vite to build fast and Cloudflare edge security to reduce latency in protecting global DNS.
 
 ## Database Schema (Prisma)
 The system makes use of relational schema to connect events, tickets, and persons to provide a high data integrity and efficient joins to administrative reporting.
