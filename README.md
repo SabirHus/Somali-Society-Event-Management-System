@@ -1,99 +1,22 @@
-## 🚀 Deployment
+Event Management System Somali society (somsocsal.com).
 
-This application is deployed on Render with a custom domain.
+An event operations automation-integrated high-performance and secure ticketing and logistics platform. This operating-level system takes care of the entire event lifecycle, including credit card processing as well as real-time attendee verification.
 
-### Live URLs
+Live Environment
+* URL: [ https ](https) somsocsal.com
+* Status:** Live / Production
 
-- **Frontend:** https://somsocsal.com,https://www.somsocsal.com
-- **Backend API:** https://api.somsocsal.com
-- **Admin Dashboard:** https://somsocsal.com/admin
-- **Scanner:** https://somsocsal.com/scan
+Technical Stack and Infrastructure: The stack of software, hardware, and infrastructure the company uses to deliver its service and product offerings.<|human|>Technical Stack and Infrastructure: The software, hardware, and infrastructure by which the company provides its service and product offerings.
+* Frontend: React (Vite) to have a mobile-first, responsive administrative and user interface.
+* Backend: Node.js (Express) that is structured by modular service layers that perform payments, emails and authentication.
+* Database: Neon PostgreSQL, implemented as a Prisma ORM with type-safe data relational processing.
+* Security & Infrastructure: Cloudflare-based SSL/TLS encryption; management of secure environment variables; prepared SQL statements in the form of PDO, used to prevent SQL injections.
 
----
+ore Engineering Features
+* Financial Intelligibility: Built in Stripe API with powerful webhook capabilities to achieve 100 percent transaction consistency between payment status and database entries.
+* Automated Fulfillment Logic: Developed an asynchronous Resend (SMTP) engine to create and issue unique QR-coded tickets as soon as the checkout was successful.
+* Administrative Scanning Infrastructure: Built a mobile-based dashboard with a real-time QR scanner that coordinates the attendee check-ins to the main database.
+* Performance Optimization: Build time Leveraged Vite to build fast and Cloudflare edge security to reduce latency in protecting global DNS.
 
-## 💻 Local Development Setup
-
-If you want to run this locally for development:
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/SabirHus/somali-soc-mvp.git
-cd somali-soc-mvp
-```
-
-### 2. Setup Backend
-
-```bash
-cd server
-cp .env.example .env
-# Edit .env with your local values (use localhost URLs)
-npm install
-npx prisma migrate dev
-npm run dev
-```
-
-### 3. Setup Frontend
-
-```bash
-cd ../web
-cp .env.example .env
-# Edit .env with backend URL (http://localhost:4000 for local dev)
-npm install
-npm run dev
-```
-
-### 4. Visit (Local Development)
-
-- Frontend: http://localhost:5173
-- Backend: http://localhost:4000
-
----
-
-## 🔧 Environment Variables
-
-### Production (Render)
-
-Environment variables are set in the Render dashboard for both services.
-
-### Local Development
-
-Copy `.env.example` files and fill in your local/test values:
-
-- `server/.env` - Backend configuration
-- `web/.env` - Frontend configuration
-
----
-
-## 🚀 Deployment
-
-The application auto-deploys from the `main` branch:
-
-- Push to GitHub → Render automatically redeploys
-- Backend and Frontend are deployed separately
-- Database hosted on Neon (PostgreSQL)
-
----
-
-## 🛠️ Tech Stack
-
-**Frontend:**
-
-- React + Vite
-- React Router
-- Axios
-
-**Backend:**
-
-- Node.js + Express
-- PostgreSQL (Neon)
-- Prisma ORM
-- Stripe Payments
-- Resend Email
-
-**Hosting:**
-
-- Frontend: Render (Static Site)
-- Backend: Render (Web Service)
-- Database: Neon (PostgreSQL)
-- Domain: somsocsal.com (Cloudflare/Namecheap)
+Database Schema (Prisma)
+The system makes use of relational schema to connect events, tickets, and persons to provide a high data integrity and efficient joins to administrative reporting.
