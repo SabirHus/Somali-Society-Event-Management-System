@@ -27,4 +27,29 @@ Booking
 <img width="1230" height="897" alt="image" src="https://github.com/user-attachments/assets/8a8158ec-ca72-4468-aa5d-70b503c7f9a2" />
 
 Admin Dashboard
+<img width="1908" height="484" alt="image" src="https://github.com/user-attachments/assets/df573c80-f4a2-46fb-be08-0615a082ef5f" />
 <img width="1897" height="712" alt="image" src="https://github.com/user-attachments/assets/e771d755-b977-48ea-aec8-9462b9a9e2e6" />
+
+Edit Page
+<img width="1906" height="628" alt="image" src="https://github.com/user-attachments/assets/0646fafb-e609-4866-a087-bffe8f3367cc" />
+
+Create Event
+<img width="1911" height="687" alt="image" src="https://github.com/user-attachments/assets/a63d2261-7db2-4ade-b964-ed66facff259" />
+
+Scanner
+<img width="1252" height="442" alt="image" src="https://github.com/user-attachments/assets/0aa59627-e5fe-49a1-8348-b65d42360786" />
+
+Payment Page
+<img width="1112" height="893" alt="image" src="https://github.com/user-attachments/assets/e087a349-6289-434f-937b-a88c852d3098" />
+
+Success Page
+<img width="615" height="588" alt="image" src="https://github.com/user-attachments/assets/d208d30f-34e0-4423-abed-cc7ae9d51f8a" />
+
+Email
+<img width="557" height="698" alt="image" src="https://github.com/user-attachments/assets/6ef4de9e-05d5-4426-b51c-748d1305b6e7" />
+<img width="577" height="759" alt="image" src="https://github.com/user-attachments/assets/9cfe6f38-772b-46f7-a46a-a953693530ba" />
+
+
+
+
+
