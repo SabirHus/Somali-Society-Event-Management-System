@@ -1,4 +1,4 @@
-Event Management System Somali society (somsocsal.com).
+<img width="1900" height="903" alt="image" src="https://github.com/user-attachments/assets/79205b37-9b7f-4a83-9491-d55179bc201c" />Event Management System Somali society (somsocsal.com).
 
 An event operations automation-integrated high-performance and secure ticketing and logistics platform. This operating-level system takes care of the entire event lifecycle, including credit card processing as well as real-time attendee verification.
 
@@ -20,3 +20,5 @@ Technical Stack and Infrastructure: The stack of software, hardware, and infrast
 
 ## Database Schema (Prisma)
 The system makes use of relational schema to connect events, tickets, and persons to provide a high data integrity and efficient joins to administrative reporting.
+
+<img width="1900" height="903" alt="image" src="https://github.com/user-attachments/assets/e12163e6-e530-42d3-8b02-14cf74f9976b" />
