@@ -28,6 +28,8 @@ Booking
 
 Admin Dashboard
 <img width="1908" height="484" alt="image" src="https://github.com/user-attachments/assets/df573c80-f4a2-46fb-be08-0615a082ef5f" />
+
+Attendee List
 <img width="1897" height="712" alt="image" src="https://github.com/user-attachments/assets/e771d755-b977-48ea-aec8-9462b9a9e2e6" />
 
 Edit Page
