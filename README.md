@@ -3,7 +3,7 @@ Event Management System Somali society (somsocsal.com).
 An event operations automation-integrated high-performance and secure ticketing and logistics platform. This operating-level system takes care of the entire event lifecycle, including credit card processing as well as real-time attendee verification.
 
 ## Live Environment
-* **URL: [ https ](https) somsocsal.com
+* **URL: https://somsocsal.com/
 * **Status:** Live / Production
 
 Technical Stack and Infrastructure: The stack of software, hardware, and infrastructure the company uses to deliver its service and product offerings.<|human|>Technical Stack and Infrastructure: The software, hardware, and infrastructure by which the company provides its service and product offerings.
