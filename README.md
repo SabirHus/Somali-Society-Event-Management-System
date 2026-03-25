@@ -22,3 +22,9 @@ Technical Stack and Infrastructure: The stack of software, hardware, and infrast
 
 ## Database Schema (Prisma)
 The system makes use of relational schema to connect events, tickets, and persons to provide a high data integrity and efficient joins to administrative reporting.
+
+Booking
+<img width="1230" height="897" alt="image" src="https://github.com/user-attachments/assets/8a8158ec-ca72-4468-aa5d-70b503c7f9a2" />
+
+Admin Dashboard
+<img width="1897" height="712" alt="image" src="https://github.com/user-attachments/assets/e771d755-b977-48ea-aec8-9462b9a9e2e6" />
