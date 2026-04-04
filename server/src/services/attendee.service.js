@@ -10,13 +10,15 @@ const nanoid = customAlphabet("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", 8);
 // --- Internal Helpers ---
 
 /** Generates a unique, non-colliding booking code (e.g., SS-ABC12345). */
-async function generateUniqueCode() {
+async function generateUniqueCode(tx) {
+  // Accept optional transaction context so code generation is safe inside transactions
+  const client = tx || prisma;
   let code;
   let exists = true;
 
   while (exists) {
     code = `SS-${nanoid()}`;
-    const found = await prisma.attendee.findUnique({ where: { code } });
+    const found = await client.attendee.findUnique({ where: { code } });
     exists = !!found;
   }
 
@@ -25,8 +27,10 @@ async function generateUniqueCode() {
 
 // --- Public Service Functions ---
 
-/** * Creates attendee records based on a successful Stripe session webhook event.
- * Handles single or multiple tickets (guests).
+/**
+ * Creates attendee records based on a successful Stripe session webhook event.
+ * Uses a database transaction with a row-level lock to prevent overselling
+ * when many people purchase simultaneously.
  */
 export async function upsertAttendeeFromSession(session) {
   const { name, email, phone, quantity, eventId } = session.metadata;
@@ -42,10 +46,9 @@ export async function upsertAttendeeFromSession(session) {
   });
 
   // 1. Check if session was already processed (CRITICAL for webhooks)
+  // This fast check outside the transaction avoids unnecessary locking
   const existing = await prisma.attendee.findFirst({
-    where: { 
-      stripeSessionId: session.id 
-    },
+    where: { stripeSessionId: session.id },
   });
 
   if (existing) {
@@ -53,70 +56,10 @@ export async function upsertAttendeeFromSession(session) {
       sessionId: session.id,
       attendeeId: existing.id
     });
-    
-    // Attempt to return all attendees created during the original process
+
+    // Return all attendees created during the original process
     const allAttendees = await prisma.attendee.findMany({
-      where: {
-        // Use the original session ID for lookup
-        stripeSessionId: session.id
-      },
-      include: { 
-        event: {
-          select: {
-            id: true,
-            name: true,
-            eventDate: true,
-            eventTime: true,
-            location: true
-          }
-        }
-      }
-    });
-    
-    return allAttendees;
-  }
-
-  // 2. Verify capacity
-  const event = await prisma.event.findUnique({
-    where: { id: eventId },
-    include: {
-      _count: {
-        select: { attendees: true }
-      }
-    }
-  });
-
-  if (!event) {
-    throw new Error(`Event ${eventId} not found`);
-  }
-
-  const currentAttendees = event._count.attendees;
-  const requestedQuantity = parseInt(quantity) || 1;
-  const remaining = event.capacity - currentAttendees;
-
-  if (remaining < requestedQuantity) {
-    throw new Error(`Not enough capacity. Requested: ${requestedQuantity}, Available: ${remaining}`);
-  }
-
-  // 3. Create all attendee records
-  const qty = parseInt(quantity) || 1;
-  const attendees = [];
-
-  for (let i = 0; i < qty; i++) {
-    const code = await generateUniqueCode();
-    
-    const attendee = await prisma.attendee.create({
-      data: {
-        // Name first ticket holder normally, subsequent tickets as guests
-        name: i === 0 ? name : `${name} (Guest ${i})`,
-        email,
-        phone: phone || null,
-        code,
-        // Only link the Stripe session ID to the primary ticket holder
-        stripeSessionId: i === 0 ? session.id : null, 
-        eventId,
-        checkedIn: false
-      },
+      where: { stripeSessionId: session.id },
       include: {
         event: {
           select: {
@@ -129,15 +72,96 @@ export async function upsertAttendeeFromSession(session) {
         }
       }
     });
-    
-    attendees.push(attendee);
-    
-    logger.info(`Created attendee ${i + 1}/${qty}`, {
-      code: attendee.code,
-      name: attendee.name,
-      hasSessionId: !!attendee.stripeSessionId
-    });
+
+    return allAttendees;
   }
+
+  // 2. Use a transaction with row-level lock to prevent race conditions.
+  // If two webhooks arrive at exactly the same time, only one will proceed —
+  // the other will wait for the lock to release, then see the duplicate check above.
+  const attendees = await prisma.$transaction(async (tx) => {
+
+    // Lock the event row so no other transaction can read/write it simultaneously.
+    // This prevents the overselling race condition.
+    const lockedEvent = await tx.$queryRaw`
+      SELECT e.id, e.capacity, e.name,
+             COUNT(a.id)::int AS current_count
+      FROM events e
+      LEFT JOIN attendees a ON a."eventId" = e.id
+      WHERE e.id = ${eventId}
+      GROUP BY e.id, e.capacity, e.name
+      FOR UPDATE
+    `;
+
+    if (!lockedEvent[0]) {
+      throw new Error(`Event ${eventId} not found`);
+    }
+
+    const event = lockedEvent[0];
+    const currentCount = parseInt(event.current_count) || 0;
+    const requestedQty = parseInt(quantity) || 1;
+    const remaining = event.capacity - currentCount;
+
+    if (remaining < requestedQty) {
+      throw new Error(
+        `Not enough capacity. Requested: ${requestedQty}, Available: ${remaining}`
+      );
+    }
+
+    // 3. Double-check for duplicate inside the transaction (belt and braces)
+    const duplicateCheck = await tx.attendee.findFirst({
+      where: { stripeSessionId: session.id }
+    });
+
+    if (duplicateCheck) {
+      logger.warn('Duplicate detected inside transaction', { sessionId: session.id });
+      // Return empty array — caller will handle this gracefully
+      return [];
+    }
+
+    // 4. Create all attendee records inside the same transaction
+    const created = [];
+
+    for (let i = 0; i < requestedQty; i++) {
+      // Generate unique code inside the transaction to avoid conflicts
+      const code = await generateUniqueCode(tx);
+
+      const attendee = await tx.attendee.create({
+        data: {
+          // Name first ticket holder normally, subsequent tickets as guests
+          name: i === 0 ? name : `${name} (Guest ${i})`,
+          email,
+          phone: phone || null,
+          code,
+          // Only link the Stripe session ID to the primary ticket holder
+          stripeSessionId: i === 0 ? session.id : null,
+          eventId,
+          checkedIn: false
+        },
+        include: {
+          event: {
+            select: {
+              id: true,
+              name: true,
+              eventDate: true,
+              eventTime: true,
+              location: true
+            }
+          }
+        }
+      });
+
+      created.push(attendee);
+
+      logger.info(`Created attendee ${i + 1}/${requestedQty}`, {
+        code: attendee.code,
+        name: attendee.name,
+        hasSessionId: !!attendee.stripeSessionId
+      });
+    }
+
+    return created;
+  });
 
   logger.info('All attendees created successfully', {
     sessionId: session.id,
@@ -207,7 +231,7 @@ export async function toggleCheckInByCode(code) {
       eventId: attendee.eventId,
       eventName: attendee.event.name
     });
-    
+
     // Return attendee with special flag
     return {
       ...attendee,
@@ -241,23 +265,25 @@ export async function toggleCheckInByCode(code) {
   };
 }
 
-/** Provides overall summary statistics for all events/attendees (global view). */
+/** Provides overall summary statistics across all active events. */
 export async function summary() {
-  // Fetch overall capacity from environment variable (if defined)
-  const capacity = parseInt(process.env.CAPACITY || "100"); 
-  const totalAttendees = await prisma.attendee.count();
-  
-  // Note: Only attendees linked to a stripeSessionId are considered "paid" 
-  // (Assuming non-null stripeSessionId implies payment success)
-  const paidAttendees = await prisma.attendee.count({
-    where: { stripeSessionId: { not: null } }
+  const events = await prisma.event.findMany({
+    where: { isActive: true },
+    include: {
+      _count: {
+        select: { attendees: true }
+      }
+    }
   });
 
+  const totalCapacity = events.reduce((sum, e) => sum + e.capacity, 0);
+  const totalAttendees = events.reduce((sum, e) => sum + e._count.attendees, 0);
+
   return {
-    paid: paidAttendees,
-    pending: totalAttendees - paidAttendees,
-    capacity,
-    remaining: capacity - totalAttendees,
+    paid: totalAttendees,
+    pending: 0,
+    capacity: totalCapacity,
+    remaining: totalCapacity - totalAttendees,
   };
 }
 

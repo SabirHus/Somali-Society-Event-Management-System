@@ -19,10 +19,11 @@ export async function createCheckoutSession({ name, email, phone, quantity, even
     throw new Error("Missing eventId");
   }
 
-  // Determine dynamic URLs for redirection after payment completion/cancellation
-  const baseUrl = process.env.WEB_ORIGIN?.split(',')[0] || process.env.APP_URL;
-  const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`;
-  const cancelUrl = `${baseUrl}/event/${eventId}?cancelled=true`;
+  // Use WEB_ORIGIN for redirects so the user lands back on the frontend,
+  // not the API server. Split handles the comma-separated list in WEB_ORIGIN.
+  const frontendUrl = process.env.WEB_ORIGIN?.split(',')[0]?.trim() || process.env.APP_URL;
+  const successUrl = `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}&eventId=${eventId}`;
+  const cancelUrl = `${frontendUrl}/event/${eventId}?cancelled=true`;
 
   logger.info('Creating checkout session', {
     email,
@@ -55,7 +56,7 @@ export async function createCheckoutSession({ name, email, phone, quantity, even
       },
       billing_address_collection: 'auto',
       // Session expires in 30 minutes
-      expires_at: Math.floor(Date.now() / 1000) + (30 * 60), 
+      expires_at: Math.floor(Date.now() / 1000) + (30 * 60),
     });
 
     logger.info('Checkout session created', {
@@ -73,7 +74,7 @@ export async function createCheckoutSession({ name, email, phone, quantity, even
       quantity
     });
     // Re-throw Stripe error for error handler
-    throw error; 
+    throw error;
   }
 }
 

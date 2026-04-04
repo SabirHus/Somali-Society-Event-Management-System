@@ -3,9 +3,10 @@
 import express from 'express';
 import { prisma } from '../models/prisma.js';
 import { loginAdmin } from '../services/auth.service.js';
-import { adminList} from '../controllers/admin.controller.js';
+import { adminList } from '../controllers/admin.controller.js';
 import { loginRateLimiter, adminRateLimiter } from '../middleware/rate-limit.js';
 import { asyncHandler } from '../middleware/error-handler.js';
+import { requireAuth } from '../middleware/auth.middleware.js';
 import { updateEvent } from '../services/event.service.js';
 
 const router = express.Router();
@@ -13,15 +14,15 @@ const router = express.Router();
 // --- Public/Unprotected Routes ---
 // POST /api/auth/login - Admin login (rate limited)
 router.post(
-  '/login', 
+  '/login',
   loginRateLimiter, // Limit: 5 attempts per 15 minutes
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'validation_error',
-        message: 'Email and password are required' 
+        message: 'Email and password are required'
       });
     }
 
@@ -30,7 +31,7 @@ router.post(
       res.json(result);
     } catch (err) {
       // Generic error for security
-      res.status(401).json({ 
+      res.status(401).json({
         error: 'invalid_credentials',
         message: 'Invalid email or password'
       });
@@ -43,12 +44,13 @@ router.post(
 // DELETE /api/auth/events/:id - Delete event (FORCE DELETE)
 router.delete(
   '/events/:id',
+  requireAuth,
   adminRateLimiter,
   asyncHandler(async (req, res) => {
     const eventId = req.params.id;
-    
+
     console.log('Attempting to delete event:', eventId);
-    
+
     try {
       // Get event with attendee count
       const event = await prisma.event.findUnique({
@@ -75,7 +77,7 @@ router.delete(
         const deletedAttendees = await prisma.attendee.deleteMany({
           where: { eventId: eventId }
         });
-        
+
         console.log(`Deleted ${deletedAttendees.count} attendees`);
       }
 
@@ -91,7 +93,7 @@ router.delete(
         message: 'Event and all attendees permanently deleted',
         deletedAttendees: event._count.attendees
       });
-      
+
     } catch (error) {
       console.error('Delete event error:', error);
       res.status(500).json({
@@ -106,6 +108,7 @@ router.delete(
 // LIST /api/auth/attendees - List attendees
 router.get(
   '/attendees',
+  requireAuth,
   adminRateLimiter,
   asyncHandler(adminList)
 );
@@ -113,6 +116,7 @@ router.get(
 // POST /api/auth/attendees/:code/checkin - Check in by code (Scanner/Manual)
 router.post(
   '/attendees/:code/checkin',
+  requireAuth,
   adminRateLimiter,
   asyncHandler(async (req, res) => {
     const { toggleCheckInByCode } = await import('../services/attendee.service.js');
@@ -128,12 +132,13 @@ router.post(
 // DELETE /api/auth/attendees/:id - Delete single attendee
 router.delete(
   '/attendees/:id',
+  requireAuth,
   adminRateLimiter,
   asyncHandler(async (req, res) => {
     const attendeeId = req.params.id;
-    
+
     console.log('Attempting to delete attendee:', attendeeId);
-    
+
     try {
       // Check if attendee exists
       const existingAttendee = await prisma.attendee.findUnique({
@@ -151,14 +156,14 @@ router.delete(
       await prisma.attendee.delete({
         where: { id: attendeeId }
       });
-      
+
       console.log('Attendee deleted successfully:', attendeeId);
-      
+
       res.json({
         success: true,
         message: 'Attendee deleted successfully'
       });
-      
+
     } catch (error) {
       console.error('Delete attendee error:', error);
       res.status(500).json({
@@ -172,6 +177,7 @@ router.delete(
 // GET /api/auth/attendees/:id - Get single attendee
 router.get(
   '/attendees/:id',
+  requireAuth,
   adminRateLimiter,
   asyncHandler(async (req, res) => {
     const attendee = await prisma.attendee.findUnique({
@@ -200,6 +206,7 @@ router.get(
 // PUT /api/auth/attendees/:id - Update attendee
 router.put(
   '/attendees/:id',
+  requireAuth,
   adminRateLimiter,
   asyncHandler(async (req, res) => {
     const { name, email, phone, checkedIn } = req.body;
@@ -228,20 +235,19 @@ router.put(
 // PUT /api/auth/events/:id - Update event details
 router.put(
   '/events/:id',
+  requireAuth,
   adminRateLimiter,
   asyncHandler(async (req, res) => {
     const eventId = req.params.id;
-    // ⭐ FIX: Delegate the update logic to the Service Layer
     try {
       const event = await updateEvent(eventId, req.body);
-      
+
       res.json({
         success: true,
         message: 'Event updated successfully',
         event
       });
     } catch (error) {
-      // Re-throw specific error or log generic failure
       console.error('Update event error:', error);
       res.status(500).json({
         success: false,

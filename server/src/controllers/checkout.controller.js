@@ -22,7 +22,7 @@ export async function createSession(req, res, next) {
 
     // Fetch event details with stats to check active status and capacity
     const event = await getEventById(eventId, true);
-    
+
     if (!event.isActive) {
       return res.status(400).json({
         error: "event_inactive",
@@ -31,12 +31,12 @@ export async function createSession(req, res, next) {
     }
 
     const requestedQuantity = parseInt(quantity) || 1;
-    
+
     // Check capacity before creating session
     if (event.remaining < requestedQuantity) {
       return res.status(400).json({
         error: "capacity_exceeded",
-        message: `Not enough tickets available. Requested: ${requestedQuantity}, Available: ${event.remaining}`,
+        message: `Only ${event.remaining} ticket${event.remaining === 1 ? '' : 's'} remaining`,
         available: event.remaining
       });
     }
@@ -91,7 +91,7 @@ export async function checkoutSuccess(req, res, next) {
 
     // Delegate to Payment Service
     const session = await getSession(session_id);
-    
+
     // Return relevant session data to the client
     res.json({
       success: true,

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useRef } from 'react';
+﻿// web/src/pages/Scan.jsx
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Scan.css';
 
@@ -23,24 +24,6 @@ export default function Scan() {
   const [loading, setLoading] = useState(false);
 
   // --- Effects ---
-
-  // Add this effect to load jsQR library
-useEffect(() => {
-  // Check if jsQR is already loaded
-  if (!window.jsQR) {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
-    script.async = true;
-    script.onload = () => {
-      console.log('✅ jsQR library loaded successfully');
-    };
-    script.onerror = () => {
-      console.error('❌ Failed to load jsQR library');
-      showMessage('error', 'Failed to load QR scanner library');
-    };
-    document.head.appendChild(script);
-  }
-}, []);
 
   // Check authentication on component mount
   useEffect(() => {
@@ -81,10 +64,10 @@ useEffect(() => {
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-    
+
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    
+
     switch(type) {
       case 'success':
         oscillator.frequency.value = 800;
@@ -129,11 +112,11 @@ useEffect(() => {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' }
       });
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.play();
-        
+
         // Start scanning for QR codes every 500ms
         scanIntervalRef.current = setInterval(scanQRCode, 500);
       }
@@ -150,55 +133,46 @@ useEffect(() => {
       tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
-    
+
     if (scanIntervalRef.current) {
       clearInterval(scanIntervalRef.current);
     }
   }
 
-  /** Captures frame from video and attempts to decode QR code using jsQR. */
-async function scanQRCode() {
-  if (!videoRef.current || !canvasRef.current) return;
+  /** Captures frame from video and attempts to decode QR code using jsQR (loaded in index.html). */
+  async function scanQRCode() {
+    if (!videoRef.current || !canvasRef.current) return;
 
-  const video = videoRef.current;
-  const canvas = canvasRef.current;
-  const context = canvas.getContext('2d');
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
 
-  if (video.readyState === video.HAVE_ENOUGH_DATA) {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    
-    try {
-      const code = window.jsQR(imageData.data, imageData.width, imageData.height);
-      
-      // ADD THIS LOGGING
-      if (code) {
-        console.log('🔍 QR Code detected:', code.data);
-      }
-      
-      if (code && code.data) {
-        const scannedCode = code.data.trim();
-        console.log('📱 Scanned code:', scannedCode); // ADD THIS
-        
-        if (scannedCode !== lastScannedCode && scannedCode.startsWith('SS-')) {
-          console.log('✅ Valid SS- code, checking in...'); // ADD THIS
-          setLastScannedCode(scannedCode);
-          await handleCheckIn(scannedCode);
-        } else {
-          console.log('❌ Code ignored:', { scannedCode, lastScannedCode }); // ADD THIS
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+      try {
+        const code = window.jsQR(imageData.data, imageData.width, imageData.height);
+
+        if (code && code.data) {
+          const scannedCode = code.data.trim();
+
+          if (scannedCode !== lastScannedCode && scannedCode.startsWith('SS-')) {
+            setLastScannedCode(scannedCode);
+            await handleCheckIn(scannedCode);
+          }
         }
+      } catch (err) {
+        console.error('QR scanning error:', err);
       }
-    } catch (err) {
-      console.error('QR scanning error:', err);
     }
   }
-}
 
   // --- API Handlers ---
-  
+
   /** Checks in attendee by booking code (check-in only, no toggle). */
   async function handleCheckIn(code) {
     if (!token) {
@@ -225,7 +199,7 @@ async function scanQRCode() {
       }
 
       // Extract attendee from response
-      const attendeeData = data.attendee || data;  
+      const attendeeData = data.attendee || data;
       setAttendee(attendeeData);
 
       // Check if already checked in
@@ -247,7 +221,7 @@ async function scanQRCode() {
       showMessage('error', err.message);
       playSound('error');
       setAttendee(null);
-      
+
       // Allow retry after 2 seconds
       setTimeout(() => {
         setLastScannedCode(null);
@@ -346,7 +320,7 @@ async function scanQRCode() {
               <span className="status-icon">✅</span>
               <h2>Checked In</h2>
             </div>
-            
+
             <div className="attendee-details">
               <div className="detail-row">
                 <span className="label">Name:</span>
