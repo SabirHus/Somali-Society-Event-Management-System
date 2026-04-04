@@ -5,6 +5,7 @@ import './Scan.css';
 
 // --- Constants ---
 const API_URL = import.meta.env.VITE_API_URL;
+const JSQR_CDN = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
 
 export default function Scan() {
   // --- React Hooks & Refs ---
@@ -58,9 +59,26 @@ export default function Scan() {
     return () => stopCamera();
   }, [scanning]);
 
-  // --- Utility Functions (Audio Feedback) ---
+  // --- Utility Functions ---
+
+  /** Lazily loads jsQR from CDN only when the scanner is first started. */
+  function loadJsQR() {
+    return new Promise((resolve, reject) => {
+      // Already loaded — nothing to do
+      if (window.jsQR) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = JSQR_CDN;
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Failed to load QR scanner library'));
+      document.head.appendChild(script);
+    });
+  }
+
+  /** Audio Feedback using AudioContext for low-latency sound. */
   function playSound(type) {
-    // Uses AudioContext for low-latency sound feedback
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -106,9 +124,12 @@ export default function Scan() {
 
   // --- Camera/Scanning Logic ---
 
-  /** Attempts to start the device camera and QR scanning interval. */
+  /** Lazily loads jsQR, then starts the device camera and QR scanning interval. */
   async function startCamera() {
     try {
+      // Load jsQR on demand — only downloaded the first time the scanner is opened
+      await loadJsQR();
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' }
       });
@@ -139,7 +160,7 @@ export default function Scan() {
     }
   }
 
-  /** Captures frame from video and attempts to decode QR code using jsQR (loaded in index.html). */
+  /** Captures frame from video and attempts to decode QR code using jsQR. */
   async function scanQRCode() {
     if (!videoRef.current || !canvasRef.current) return;
 
